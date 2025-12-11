@@ -359,8 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadSearchIndex = async () => {
     searchLoading.style.display = 'block';
     try {
-      const response = await fetch('/index.json');
+      const response = await fetch('/index.json?t=' + new Date().getTime());
       searchIndex = await response.json();
+      console.log('Search index loaded, items:', searchIndex ? searchIndex.length : 0);
     } catch (error) {
       console.error('Failed to load search index:', error);
       searchResults.innerHTML = '<div style="padding:20px;text-align:center;">Failed to load search index.</div>';
