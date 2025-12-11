@@ -2,7 +2,7 @@
   <!-- Left Side: Avatar, Title, Home Button -->
   <div style="display: flex; align-items: center; gap: 12px;">
     <!-- Avatar -->
-    <img src="/avatar.jpg" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background-color: var(--border-color);">
+    <img src="{{ "avatar.jpg" | relURL }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background-color: var(--border-color);">
     
     <!-- Title -->
     <a href="{{ site.Home.RelPermalink }}" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">{{ site.Title }}</a>
