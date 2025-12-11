@@ -34,5 +34,16 @@ title = 'Yuy0ung的知识库'
     ordered = false
     startLevel = 1
 
+[mediaTypes]
+  [mediaTypes."application/json"]
+    suffixes = ["json"]
+
+[outputFormats]
+  [outputFormats.JSON]
+    mediaType = "application/json"
+    baseName = "index"
+    isPlainText = true
+    notAlternative = true
+
 [outputs]
   home = ["HTML", "JSON"]
