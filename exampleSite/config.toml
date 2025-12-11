@@ -1,0 +1,10 @@
+baseURL = "http://localhost:1313/"
+languageCode = "zh-CN"
+title = "My Hugo Knowledgebase"
+theme = "yuque-pro"  # 如果你使用 themesDir 指向的主题，在这里填主题名
+enableGitInfo = true
+
+[outputs]
+home = ["HTML", "JSON"]   # 如果你要生成 index.json
+
+# 可选：如果部署到仓库子路径，设置 baseURL = "https://<user>.github.io/<repo>/"

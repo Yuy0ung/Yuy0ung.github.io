@@ -1,0 +1,16 @@
+<ul class="tree-list">
+  {{ range .Pages }}
+    <li>
+      {{ if .IsSection }}
+        <span class="tree-toggle expanded"></span>
+        <a href="{{ .RelPermalink }}" class="section-link"><strong>{{ .Title }}</strong></a>
+        <div class="tree-children">
+          {{ partial "tree.html" . }}
+        </div>
+      {{ else }}
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="{{ .RelPermalink }}" class="article-link" data-summary="{{ .Summary | plainify | htmlEscape }}">{{ .Title }}</a>
+      {{ end }}
+    </li>
+  {{ end }}
+</ul>

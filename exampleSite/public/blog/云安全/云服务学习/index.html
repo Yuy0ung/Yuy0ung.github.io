@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>云服务学习 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>云服务学习</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="云服务学习">云服务学习</h1>
+<p>云服务就是云上的服务，比如从云厂商（AWS、阿里云）买来的服务</p>
+<p>国内云厂商：</p>
+<ul>
+<li>阿里云</li>
+<li>腾讯云</li>
+<li>华为云</li>
+<li>天翼云</li>
+<li>Ucloud</li>
+<li>金山云</li>
+<li>&hellip;&hellip;</li>
+</ul>
+<p>国外云厂商：</p>
+<ul>
+<li>AWS</li>
+<li>GCP</li>
+<li>Azure</li>
+<li>&hellip;&hellip;</li>
+</ul>
+<p>每个云厂商对云服务的叫法不同，这里以AWS的为例：</p>
+<ul>
+<li>S3对象存储（Simple Storage Service），可以简单理解为网盘，略有区别</li>
+<li>EC2弹性计算服务（Elastic Computer Cloud），简单理解为云上的虚拟机</li>
+<li>RDS云数据库（Relational Database Service），简单理解为云上数据库</li>
+<li>IAM身份管理和访问管理（Identity and Access Management），简单理解为云控制台上的一套身份管理服务，可以用来管理每个子账号的权限</li>
+</ul>
+<p>综上来看，其实可以简单看作一些本地的功能/服务放到了云上，那么就会产生对应的风险，值得研究</p>
+<p>在下文的案例图片中，笔者可能会更多用国内厂商（比如aliyun）进行举例，漏洞实例使用<a href="https://github.com/HXSecurity/TerraformGoat">TerraformGoat</a>靶场进行演示</p>
+<p>学习顺序参考https://wiki.teamssix.com/</p>
+<h2 id="对象存储">对象存储</h2>
+<p>对象存储（Object-Based Storage），也可以叫做面向对象的存储，现在也有不少厂商直接把它叫做云存储，很经典的就是Amazon S3 (Simple Storage Service) 简单存储服务，是 Amazon 的公开云存储服务，与之对应的协议被称为 S3 协议，目前 S3 协议已经被视为公认的行业标准协议，因此目前国内主流的对象存储厂商基本上都会支持 S3 协议</p>
+<p>Amazon S3标准中，对对象存储中可以有多个桶（Bucket），而对象（object）存放在桶里，对象包含三个<code>key</code>、<code>Data</code>、<code>Metadata</code>部分：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250220033100066.png" alt="image-20250220033100066"></p>
+<ul>
+<li><strong>Key</strong>指存储桶中的唯一标识符，例如一个 URL 为：<code>https://yuy0ung.s3.ap-northeast-2.amazonaws.com/d0g3</code>，这里的 yuy0ung 是存储桶 Bucket 的名称，<code>/d0g3</code> 就是 Key</li>
+<li><strong>Data</strong>很好理解，就是存储的数据本体</li>
+<li><strong>Metadata</strong>意味元数据，可以简单理解为数据的标签、描述之类的信息（区别于传统的文件存储，在传统的文件存储中这类信息是直接封装在文件里的，而云上有了元数据的存在，可以大大的加快对象的排序、分类和查找）</li>
+</ul>
+<p>操作使用Amazon S3的方式大致如下：</p>
+<ul>
+<li>AWS 控制台操作</li>
+<li>AWS 命令行工具操作</li>
+<li>AWS SDK 操作</li>
+<li>REST API 操作，通过 REST API，可以使用 HTTP 请求创建、提取和删除存储桶和对象</li>
+</ul>
+<p>接下来记录S3相关攻击手法</p>
+<h3 id="bucket爆破">Bucket爆破</h3>
+<p>在不知道bucket名称的时候，可以通过爆破获得Bucket名称，类似于在常规渗透中的子域名挖掘，但略有区别：</p>
+<ul>
+<li>子域名挖掘通常通过响应的状态码进行判断</li>
+<li>Bucket爆破通过页面回显的内容进行判断</li>
+</ul>
+<p>当 Bucket 不存在时有如下两种返回情况，分别是 InvalidBucketName 和 NoSuchBucket：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250221030638380.png" alt="image-20250221030638380"></p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250221030434902.png" alt="image-20250221030434902"></p>
+<p>存在时同样有两种情况，一种是列出Object，当然这样可能存在存储桶遍历导致敏感信息泄漏：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225205142031.png" alt="image-20250225205142031"></p>
+<p>一种是显示AccessDenied：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250221030925653.png" alt="image-20250221030925653"></p>
+<p>这样通过返回内容的不同，就可以进行 Bucket 名称爆破了，知道 Bucket 名称后，Key 的爆破</p>
+<h3 id="bucket接管">Bucket接管</h3>
+<p>假如在进行渗透时，发现目标的一个子域名显示<code>NoSuchBucket</code>，那么只需要重新创建一个与HostID一样的存储桶名称即可接管该存储桶，接管后上传文件并设置公开即可让该域名显示我们上传的任意文件</p>
+<blockquote>
+<p>在腾讯云的对象存储中，无法造成以上的操作，因为在腾讯云的对象存储域名中，有一个APPID，这个APPID来自我们的账户信息中</p>
+</blockquote>
+<h3 id="任意文件上传">任意文件上传</h3>
+<p>如果对象存储的配置不当，比如公共读写，就有可能造成任意文件上传，甚至是文件覆盖</p>
+<p>攻击方法与中间件的PUT漏洞类似，使用PUT方法上传文件即可，若目标的对象存储支持html解析，那么还可以尝试进行XSS、挂暗链、挂黑页、供应链投毒等操作</p>
+<p>比如这里访问可以发现有一张图片：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222033443432.png" alt="image-20250222033443432"></p>
+<p>尝试使用PUT方法覆盖：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222033602837.png" alt="image-20250222033602837"></p>
+<p>接下来再尝试访问图片，可以发现内容已经被覆盖：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222033647417.png" alt="image-20250222033647417"></p>
+<h3 id="bucket-acl-可写">Bucket ACL 可写</h3>
+<p>ACL即访问控制列表，用来管理访问权限的规则，若 ACL <strong>可写</strong>，意味着用户或攻击者可以<strong>直接修改这些权限规则</strong></p>
+<p>比如下面的S3对象存储，在Bucket ACL可写时将<code>Permission</code>权限修改为FULL_CONTROL：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;Owner&#34;</span>: {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">&#34;ID&#34;</span>: <span style="color:#e6db74">&#34;d24***5&#34;</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;Grants&#34;</span>: [
+</span></span><span style="display:flex;"><span>	{
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Grantee&#34;</span>: {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&#34;Type&#34;</span>: <span style="color:#e6db74">&#34;Group&#34;</span>, 
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&#34;URI&#34;</span>: <span style="color:#e6db74">&#34;http://acs.amazonaws.com/groups/global/AllUsers&#34;</span>
+</span></span><span style="display:flex;"><span>            }, 
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Permission&#34;</span>: <span style="color:#e6db74">&#34;FULL_CONTROL&#34;</span>
+</span></span><span style="display:flex;"><span>        } 
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样一来，写入策略后即可实现存储桶的遍历等操作</p>
+<h3 id="object-acl-可写">Object ACL 可写</h3>
+<p>原理和上面的Bucket ACL可写类似</p>
+<p>比如这里访问flag没有权限：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222040230453.png" alt="image-20250222040230453"></p>
+<p>我们通过<code>?acl</code>来查看这个对象的权限：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222040710149.png" alt="image-20250222040710149"></p>
+<p>发现是<code>private</code>，尝试通过PUT方法修改为<code>public-read</code>，需要在请求头添加<code>x-oss-object-acl</code>参数：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222040948243.png" alt="image-20250222040948243"></p>
+<p>回显200，看来修改成功了，再次尝试访问flag，发现成功将flag改为公共可读：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222041044962.png" alt="image-20250222041044962"></p>
+<h3 id="bucket-策略可写">Bucket 策略可写</h3>
+<p>部分环境的acl可读写：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222043501561.png" alt="image-20250222043501561"></p>
+<p>可以尝试通过PUT方法修改策略读取敏感文件，比如这个S3对象存储的Bucket策略：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;Version&#34;</span>: <span style="color:#e6db74">&#34;2012-10-17&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;Statement&#34;</span>: [
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Allow&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Principal&#34;</span>: {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&#34;AWS&#34;</span>: [
+</span></span><span style="display:flex;"><span>                    <span style="color:#e6db74">&#34;*&#34;</span>
+</span></span><span style="display:flex;"><span>                ]
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Action&#34;</span>: [
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;s3:GetBucketPolicy&#34;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;s3:PutBucketPolicy&#34;</span>
+</span></span><span style="display:flex;"><span>            ],
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Resource&#34;</span>: [
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;arn:aws:s3:::teamssix&#34;</span>
+</span></span><span style="display:flex;"><span>            ]
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Deny&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Principal&#34;</span>: {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">&#34;AWS&#34;</span>: [
+</span></span><span style="display:flex;"><span>                    <span style="color:#e6db74">&#34;*&#34;</span>
+</span></span><span style="display:flex;"><span>                ]
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Action&#34;</span>: [
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;s3:GetObject&#34;</span>
+</span></span><span style="display:flex;"><span>            ],
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">&#34;Resource&#34;</span>: [
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;arn:aws:s3:::teamssix/flag&#34;</span>
+</span></span><span style="display:flex;"><span>            ]
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里禁止读取flag</p>
+<p>但如果将第20行的<code>Deny</code>改为<code>Allow</code>，即可成功访问flag</p>
+<p>当然，有的场景将Allow改为Deny则有可能导致业务瘫痪</p>
+<h3 id="bucket-object-遍历">Bucket Object 遍历</h3>
+<p>和常规WEB服务的<code>index of</code>目录遍历类似，可以访问Bucket可以查看其中所有的Object，将其中的Key拼接到站点URL后面即可访问相应对象</p>
+<p>比如这里的对象遍历，可以看见Key为flag：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225205403600.png" alt="image-20250225205403600"></p>
+<p>拼接即可访问：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222044401142.png" alt="image-20250222044401142"></p>
+<h3 id="特殊的bucket-策略">特殊的Bucket 策略</h3>
+<p>有些 Bucket 会将策略配置成只允许某些特定条件才允许访问，当我们知道这个策略后，就可以访问该 Bucket 的相关对象</p>
+<p>比如这个Bucket，正常访问会被拒绝：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222044922345.png" alt="image-20250222044922345"></p>
+<p>但如果我们添加一个策略指定的UA头<code>HxSecurityLab</code>，就能够成功访问：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250222045227082.png" alt="image-20250222045227082"></p>
+<h2 id="弹性计算">弹性计算</h2>
+<p>前面提到EC2弹性计算可以简单理解为云上的虚拟机，而这里的“弹性”，则是其一大特点：</p>
+<p><strong>按需配置</strong>：CPU、内存、硬盘、网络等硬件参数随时调整（秒级切换）</p>
+<p><strong>弹性伸缩</strong>：服务器数量可根据流量自动增减，应对突发高峰或节省闲置成本</p>
+<p>弹性计算在国内叫ECS居多，同样也存在一些安全问题，下面进行记录</p>
+<h3 id="弹性计算面临的风险">弹性计算面临的风险</h3>
+<h4 id="1凭证泄露">1.凭证泄露</h4>
+<p>云上的凭证泄漏可以如下划分：</p>
+<ul>
+<li>控制台账号密码泄露，例如登录控制台的账号密码</li>
+<li>临时凭证泄露</li>
+<li>访问密钥泄露，比如AK/SK泄露</li>
+<li>实例登录凭证泄露，例如 AWS 在创建 EC2 生成的证书文件遭到泄露</li>
+</ul>
+<p>凭证信息的收集一般有如下方法：</p>
+<ul>
+<li>github敏感信息搜索</li>
+<li>反编译APK、小程序</li>
+<li>网站源码泄露</li>
+</ul>
+<h4 id="2元数据">2.元数据</h4>
+<p>元数据服务是一种提供查询运行中的实例内元数据的服务，当实例向元数据服务发起请求时，该请求不会通过外部网络传输，而是通过本地网络请求</p>
+<p>根据上面所说，如果获得了目标 EC2 权限或者目标 EC2 存在 SSRF 漏洞，就可以获得到实例的元数据</p>
+<p>下面是可以 ssrf 的常见元数据点：</p>
+<blockquote>
+<p><strong>packet</strong></p>
+<p><a href="https://metadata.packet.net/userdata">https://metadata.packet.net/userdata</a></p>
+<p><strong>google</strong></p>
+<p><a href="http://metadata.google.internal/computeMetadata/v1beta1/">http://metadata.google.internal/computeMetadata/v1beta1/</a>
+http://169.254.169.254/computeMetadata/v1/
+<a href="http://metadata.google.internal/computeMetadata/v1/">http://metadata.google.internal/computeMetadata/v1/</a>
+http://metadata/computeMetadata/v1/
+<a href="http://metadata.google.internal/computeMetadata/v1/instance/hostname">http://metadata.google.internal/computeMetadata/v1/instance/hostname</a>
+<a href="http://metadata.google.internal/computeMetadata/v1/instance/id">http://metadata.google.internal/computeMetadata/v1/instance/id</a>
+<a href="http://metadata.google.internal/computeMetadata/v1/project/project-id">http://metadata.google.internal/computeMetadata/v1/project/project-id</a>
+<a href="http://metadata.google.internal/computeMetadata/v1/instance/disks/?recursive=true">http://metadata.google.internal/computeMetadata/v1/instance/disks/?recursive=true</a></p>
+<p><strong>orcale</strong></p>
+<p>http://192.0.0.192/latest/
+http://192.0.0.192/latest/user-data/
+http://192.0.0.192/latest/meta-data/
+http://192.0.0.192/latest/attributes/</p>
+<p><strong>alibaba</strong></p>
+<p>http://100.100.100.200/latest/meta-data/
+http://100.100.100.200/latest/meta-data/instance-id
+http://100.100.100.200/latest/meta-data/image-id</p>
+</blockquote>
+<p>在云场景下，可以通过元数据进行临时凭证和其他信息的收集，以阿里云ECS（和EC2相似）的靶场为例：</p>
+<ul>
+<li>
+<p>这里有一个ssrf漏洞点：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223213419438.png" alt="image-20250223213419438"></p>
+</li>
+<li>
+<p>能够进行任意文件读取：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223213604849.png" alt="image-20250223213604849"></p>
+</li>
+<li>
+<p>尝试SSRF读取元数据：</p>
+<pre tabindex="0"><code>http://100.100.100.200/latest/meta-data/
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223213736113.png" alt="image-20250223213736113"></p>
+<p>可以看见很多metadata，下面列出一些对于红队而言价值较高的metadata，可以用于参考：</p>
+<blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>mac    实例 MAC 地址
+</span></span><span style="display:flex;"><span>hostname    实例主机名
+</span></span><span style="display:flex;"><span>iam/info    获取角色名称
+</span></span><span style="display:flex;"><span>local-ipv4    实例本地 IP
+</span></span><span style="display:flex;"><span>public-ipv4    实例公网 IP
+</span></span><span style="display:flex;"><span>instance-id    实例 ID
+</span></span><span style="display:flex;"><span>public-hostname    接口的公有 DNS (IPv4)
+</span></span><span style="display:flex;"><span>placement/region    实例的 AWS 区域
+</span></span><span style="display:flex;"><span>public-keys/0/openssh-key    公有密钥
+</span></span><span style="display:flex;"><span>/iam/security-credentials/&lt;rolename&gt;    获取角色的临时凭证
+</span></span></code></pre></div></blockquote>
+<p>我们可以拼接路由访问其中内容：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223213946664.png" alt="image-20250223213946664"></p>
+</li>
+<li>
+<p>当然我们也可以尝试读取user-data (前提是目标已经配置了用户数据，不然会返回 404)：</p>
+<pre tabindex="0"><code>http://100.100.100.200/latest/user-data/
+</code></pre><blockquote>
+<p>User Data 是在创建 ECS 实例时，可以提供给实例的一种自定义数据，通常用于自动化配置或脚本执行
+它的内容类似于dockerfile的内容，能允许用户在实例启动时自动执行某些操作</p>
+</blockquote>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223214608538.png" alt="image-20250223214608538"></p>
+<p>发现在启动时写入了flag，尝试读取：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250223214729694.png" alt="image-20250223214729694"></p>
+</li>
+</ul>
+<h4 id="3账号劫持">3.账号劫持</h4>
+<p>如果云厂商的控制台存在漏洞，用户账号也会存在一定风险</p>
+<blockquote>
+<p>AWS 的控制台曾经出现过一些 XSS 漏洞，攻击者就可能会使用这些 XSS 漏洞进行账号劫持，从而获得目标云服务器实例的权限</p>
+</blockquote>
+<h4 id="4恶意的镜像">4.恶意的镜像</h4>
+<p>其实就是我们常说的供应链攻击</p>
+<p>AWS 在创建实例的时候，用户可以选择使用公共镜像或者自定义镜像，如果这些镜像中有恶意的镜像，那么目标使用该镜像创建实例就会产生风险</p>
+<blockquote>
+<p>以 CVE-2018-15869 为例，关于该漏洞的解释是：当人们通过 AWS 命令行使用「ec2  describe-images」功能时如果没有指定 &ndash;owners 参数，可能会在无意中加载恶意的 Amazon 系统镜像 ( AMI），导致 EC2 被用来挖矿</p>
+</blockquote>
+<p>对此，在使用 AWS 命令行时应该确保自己使用的是不是最新版的 AWS 命令行，同时确保从可信的来源去获取 Amazon 系统镜像</p>
+<h4 id="5其他的初始访问方法">5.其他的初始访问方法</h4>
+<p>除了上面提到的方法，还可以通过云服务上的应用程序漏洞、SSH与RDP的弱口令等传统场景下的方法进入目标实例</p>
+<h3 id="使用用户数据执行命令">使用用户数据执行命令</h3>
+<p>在上面我们提到了功能类似于dockerfikle的user-data，我们可以联想到：攻击者能修改实例的用户数据并向其中写入待执行的命令，这些代码将会在实例每次启动时自动执行</p>
+<p>通常来说修改user-data只能在dashboard或命令行上操作设置，所以想要恶意修改难度很大</p>
+<h3 id="弹性计算下的权限维持">弹性计算下的权限维持</h3>
+<p>这里记录一些传统渗透之外的权限维持手法</p>
+<h4 id="1用户数据">1.用户数据</h4>
+<p>类似于开机启动项，利用user-data执行反弹shell命令即可实现维持</p>
+<p>但很鸡肋的是：user-data只能在实例停止时修改，并且目标有可能很长时间不会重启实例</p>
+<h4 id="2后门镜像">2.后门镜像</h4>
+<p>在获取到控制台权限后可以尝试对镜像进行修改、删除创建，以此替换上后门镜像</p>
+<p>如此，下次用户在选用该镜像创建实例的时候，就会触发镜像中的恶意代码</p>
+<h4 id="3创建访问密钥">3.创建访问密钥</h4>
+<p>如果条件允许，可以尝试创建新的访问密钥进行权限维持</p>
+<h4 id="4创建辅助账号">4.创建辅助账号</h4>
+<p>通过创建高权限子账号的方式进行权限维持，然后通过这个子账号进行后续的持续攻击行为</p>
+<h3 id="获取共享快照数据">获取共享快照数据</h3>
+<p>如果当前凭证有相关权限，可以通过创建共享快照的方式，将控制台下的实例挂载由该快照生成的卷，从而获取到目标的弹性计算中的内容</p>
+<p>在拿到目标控制台权限时，如果无法登录到实例，可以为目标实例打个快照，然后将快照共享给自己，我们再将其挂载到自己的实例，即可查看里面的数据</p>
+<p>另外，在平时进行云上攻防的时候，偶尔会碰到虽然有 ECS 实例管理权限但无法在实例上执行命令的情况，我们同样可以采取类似的思路：</p>
+<blockquote>
+<p>为目标实例打快照 —&gt; 创建磁盘 —&gt; 创建实例 —&gt; 挂载磁盘 —&gt; 利用 SAM 等文件获取密码或哈希 —&gt; 使用密码或哈希远程登录获取权限</p>
+</blockquote>
+<p>其实如果对内网渗透比较熟悉的话，可以看出来这个思路其实就类似于<strong>卷影拷贝获取域控的ntds.dit</strong></p>
+<h2 id="rds云数据库">RDS云数据库</h2>
+<p>即云上的数据库服务，适用于需要托管和管理关系型数据库的各种场景</p>
+<h3 id="rds信息收集">RDS信息收集</h3>
+<p>在RDS控制台中可以收集到一些目标公司人员信息，比如邮箱、目标 RDS TOP SQL 语句、TOP 连接主机、TOP 用户等</p>
+<p>当然在共享快照中，可以根据快照名称判断查找，查看是否有和目标相关联的快照，然后再通过还原快照的方式，尝试获得快照中 RDS 的数据</p>
+<h4 id="mssql读取实例信息">MSSQL读取实例信息</h4>
+<p>在拿到MSSQL数据库权限后，可以通过BULK INSERT 读取数据库所在实例的文件，比如AWS下读取日志文件：</p>
+<pre tabindex="0"><code class="language-mssql" data-lang="mssql">create table #testtable(context ntext);
+BULK INSERT #testtable FROM &#39;C:\ProgramData\Amazon\EC2Launch\log\agent.log&#39;
+WITH (DATAFILETYPE = &#39;char&#39;,KEEPNULLS)
+select * from #testtable
+drop table #testtable;
+</code></pre><h4 id="postgresql数据库ssrf">PostgreSQL数据库SSRF</h4>
+<p>如果获得了 PostgreSQL 数据库权限，可以通过 PostgreSQL 中的 dblink 插件横向到其他同网段数据库，这里以 AWS RDS 为例</p>
+<p>比如在无法通过外部网络连接另一目标PostgreSQL，就可以尝试使用已有PostgreSQL进行横向并执行数据库命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-postgresql" data-lang="postgresql"><span style="display:flex;"><span><span style="color:#66d9ef">create</span> <span style="color:#66d9ef">extension</span> dblink;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">select</span> dblink_connect(<span style="color:#e6db74">&#39;test&#39;</span>,<span style="color:#e6db74">&#39;host=x.x.x.x port=xxx user=xxx password=xxx dbname=postgres sslmode=disable&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">create</span> <span style="color:#66d9ef">table</span> t(id int);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">select</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">from</span> dblink_send_query(<span style="color:#e6db74">&#39;test&#39;</span>, <span style="color:#e6db74">&#39;select version();&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">select</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">from</span> dblink_get_result(<span style="color:#e6db74">&#39;test&#39;</span>) <span style="color:#66d9ef">as</span> t(res text);
+</span></span></code></pre></div><h2 id="身份和访问管理">身份和访问管理</h2>
+<p>用于允许用户创建和管理云账户、用户组、角色、权限策略，并控制谁可以访问特定的资源，以及他们可以对这些资源执行哪些操作</p>
+<p>国内各厂商叫法各不相同：RAM、CAM、IAM&hellip;&hellip;</p>
+<p>阿里云的RAM：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225171649938.png" alt="image-20250225171649938"></p>
+<h3 id="iam权限操作">IAM权限操作</h3>
+<h4 id="权限提升">权限提升</h4>
+<p>若当前用户具备编辑 IAM 策略的权限，但没有某些服务权限的话，那么可以在 IAM 中开启这个服务权限，以实现提权</p>
+<p>RAM中也有同样的功能点：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225171852493.png" alt="image-20250225171852493"></p>
+<h4 id="权限维持">权限维持</h4>
+<p>原理也比较简单，直接在 IAM 中创建一个拥有高权限的用户即可：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225172057463.png" alt="image-20250225172057463"></p>
+<p>创建用户后赋予管理权限即可，但国内通常都需要安全验证，所以比较有难度：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225172310800.png" alt="image-20250225172310800"></p>
+<h3 id="控制台接管">控制台接管</h3>
+<p>在上面我们提到了通过SSRF读取ECS的元数据以及user-data，其实我们还可以进一步利用，获取该云账户的所有阿里云服务权限：</p>
+<ul>
+<li>
+<p>首先分析一下我们获取到的元数据：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225195115504.png" alt="image-20250225195115504"></p>
+<p>可以看到这里存在ram/目录，说明当前云服务器配置了RAM角色，这样我们可以尝试获取临时凭证</p>
+</li>
+<li>
+<p>我们访问ram/：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225195615220.png" alt="image-20250225195615220"></p>
+</li>
+<li>
+<p>这里有一个security-credentials/，存储了RAM角色名称信息：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225195833968.png" alt="image-20250225195833968"></p>
+<p>可以看到RAM角色为huocorp-terraform-goat-role</p>
+</li>
+<li>
+<p>访问角色内容获得临时凭证：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225200024236.png" alt="image-20250225200024236"></p>
+</li>
+<li>
+<p>将该临时凭证配置到aliyun命令行工具：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>aliyun configure --mode StsToken
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225200632552.png" alt="image-20250225200632552"></p>
+</li>
+<li>
+<p>配置好之后我们就可以来创建子账户并赋予管理员权限了：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>aliyun ram CreateUser --UserName yuyoung
+</span></span><span style="display:flex;"><span>aliyun ram CreateLoginProfile --UserName yuyoung --Password Yuy0ung@666
+</span></span><span style="display:flex;"><span>aliyun ram AttachPolicyToUser --PolicyType System --PolicyName AdministratorAccess --UserName yuyoung
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225201627328.png" alt="image-20250225201627328"></p>
+</li>
+<li>
+<p>接下来就可以通过新创建的RAM用户进行登录了https://signin.aliyun.com/login.htm#/main，这里的用户格式为 username@company-alias，其中 username 就是刚刚创建的用户名，company-alias 可以通过下面的这个命令获取到：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>aliyun ram GetAccountAlias
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225201956754.png" alt="image-20250225201956754"></p>
+</li>
+<li>
+<p>登陆：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225202037052.png" alt="image-20250225202037052"></p>
+</li>
+<li>
+<p>密码为我们创建的密码：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225202134660.png" alt="image-20250225202134660"></p>
+</li>
+<li>
+<p>阿里云会强制你绑定MFA设备，使用任意手机绑定即可：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225203725485.png" alt="image-20250225203725485"></p>
+</li>
+<li>
+<p>绑定设备后即可成功接管控制台：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225202453925.png" alt="image-20250225202453925"></p>
+</li>
+</ul>
+<p>接下来对这个靶场案例进行分析：</p>
+<p>这个环境的问题除了存在SSRF，还有另外两个问题：</p>
+<ul>
+<li>RAM角色权限过大，导致可以通过该角色的权限进行创建子用户以及给子用户授予高权限等操作</li>
+<li>云数据未作访问加固，导致一旦目标存在SSRF或权限被获取，元数据就存在被获取的风险</li>
+</ul>
+<p>针对第一个 RAM 角色权限过大的问题，主要还是需要使用者严格遵守权限最小化的原则，在为 RAM 角色赋予权限时，避免赋予过高的权限，只赋予自己所需要的权限，这样可以将影响程度降到最低</p>
+<p>针对第二个问题，可以将实例上的元数据访问模式设置为加固模式，方法有两种：</p>
+<ul>
+<li>
+<p>1.在创建实例时，可以在「系统配置」的「高级选项」中将「实例元数据访问模式」设置为「仅加固模式」</p>
+</li>
+<li>
+<p>2.在已经创建好的实例中，可以在阿里云 OpenAPI 中开启元数据强制使用 Token 访问，OpenAPI 地址：https://next.api.aliyun.com/api/Ecs/2014-05-26/ModifyInstanceMetadataOptions</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225211012735.png" alt="image-20250225211012735"></p>
+</li>
+<li>
+<p>配置后就无法SSRF访问了，提示403：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225212948645.png" alt="image-20250225212948645"></p>
+</li>
+<li>
+<p>当然，如果实例权限被获取了，这种方法就不行了，可以这样获取元数据：</p>
+<ul>
+<li>
+<p>先获取token：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>TOKEN<span style="color:#f92672">=</span><span style="color:#e6db74">`</span>curl -X PUT <span style="color:#e6db74">&#34;http://100.100.100.200/latest/api/token&#34;</span> -H <span style="color:#e6db74">&#34;X-aliyun-ecs-metadata-token-ttl-seconds: 21600&#34;</span><span style="color:#e6db74">`</span>
+</span></span></code></pre></div></li>
+<li>
+<p>再通过token获取元数据：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>curl -H <span style="color:#e6db74">&#34;X-aliyun-ecs-metadata-token: </span>$TOKEN<span style="color:#e6db74">&#34;</span>  http://100.100.100.200/latest/meta-data/
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20250225214510580.png" alt="image-20250225214510580"></p>
+</li>
+</ul>
+</li>
+</ul>
+<p>完事记得删除创建的账号：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>aliyun ram DetachPolicyFromUser --PolicyType System --PolicyName AdministratorAccess --UserName yuyoung
+</span></span><span style="display:flex;"><span>aliyun ram DeleteUser --UserName yuyoung
+</span></span></code></pre></div><p>还要记得把ak改回来：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>aliyun configure --mode AK
+</span></span></code></pre></div><p>最后，给出这个上面方法的几个前提：</p>
+<ul>
+<li>ECS 实例需要被授予 RAM 角色，不然访问临时凭证的元数据会返回 404</li>
+<li>RAM 角色需要具备 ram 访问控制的相关操作权限，例如创建用户、赋予权限等，不然临时秘钥会没有创建子用户的权限</li>
+</ul>
+<blockquote>
+<p>在实战中，如果遇到了 ECS 实例被授予了 RAM 角色的情况，大多时候该角色都是不具备创建用户权限的，这时就没法通过创建子账号登录控制台的方式了，只能通过阿里云命令行工具去操作目标云服务了</p>
+</blockquote>
+<p>我们在这里也可以总结书一些云上攻防相比传统内网攻防的不同：</p>
+<ul>
+<li>云上攻防的常见问题是配置错误</li>
+<li>云上攻防的权限维持主要方法是创建 RAM 高权限用户，而不是像传统攻防里那样有五花八门的权限维持方法</li>
+<li>云上攻防的内网横向主要是在云服务厂商命令行或者控制台中进行横向，从这个云服务横向到另一个云服务，而不是像传统攻防那样有各种各样的内网横向手法</li>
+</ul>
+<h2 id="杂谈">杂谈</h2>
+<p>记录一些属于云服务但是不好分类的的零碎知识与Tricks</p>
+<h3 id="ak特征整理">AK特征整理</h3>
+<p>记录一下不同云服务对应AK的正则：</p>
+<h4 id="amazon-web-services">Amazon Web Services</h4>
+<p>亚马逊云计算服务 (Amazon Web Services, AWS) 的 Access Key 开头标识一般是 &ldquo;AKIA&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AKIA</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">16</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><ul>
+<li>Access Key ID: 20个随机的大写字母和数字组成的字符，例如 AKHDNAPO86BSHKDIRYTE</li>
+<li>Secret Access Key ID: 40个随机的大小写字母组成的字符，例如 S836fh/J73yHSb64Ag3Rkdi/jaD6sPl6/antFtU（无法找回丢失的 Secret Access Key ID）。</li>
+</ul>
+<h4 id="google-cloud-platform">Google Cloud Platform</h4>
+<p>Google Cloud Platform (GCP) 的 Access Key 开头标识一般是 &ldquo;GOOG&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">GOOG</span><span style="color:#f92672">[</span><span style="color:#960050;background-color:#1e0010">\</span><span style="color:#f92672">w</span><span style="color:#960050;background-color:#1e0010">\</span><span style="color:#f92672">W</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,30</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><ul>
+<li>服务账号的JSON文件中包含了Access Key和密钥的信息，其中Access Key为<code>client_email</code>，其长度不固定，由字母、数字和特殊字符组成。</li>
+<li>密钥（Key）的长度为256个字符，由字母、数字和特殊字符组成。</li>
+</ul>
+<h4 id="microsoft-azure">Microsoft Azure</h4>
+<p>Microsoft Azure 的 Access Key 开头标识一般是 &ldquo;AZ&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AZ</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">34,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><ul>
+<li>Azure AD Application的Client ID通常用作Access Key，长度为36个字符，由字母和数字组成。</li>
+<li>对于Azure AD Application的密钥（Secret），长度为44个字符，由字母、数字和特殊字符组成。</li>
+</ul>
+<h4 id="ibm-cloud">IBM Cloud</h4>
+<p>IBM 云 (IBM Cloud) 的 Access Key 开头标识一般是 &ldquo;IBM&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">IBM</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><p>或者是以下规则：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">[</span><span style="color:#f92672">a-zA-Z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">8</span>}<span style="color:#f92672">(</span><span style="color:#f92672">-</span><span style="color:#f92672">[</span><span style="color:#f92672">a-zA-Z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">4</span>}<span style="color:#f92672">)</span>{<span style="color:#960050;background-color:#1e0010">3</span>}<span style="color:#f92672">-</span><span style="color:#f92672">[</span><span style="color:#f92672">a-zA-Z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">12</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="oracle-cloud">Oracle Cloud</h4>
+<p>Oracle云 (Oracle Cloud) 的 Access Key 开头标识一般是 &ldquo;OCID&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">OCID</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="阿里云">阿里云</h4>
+<p>阿里云 (Alibaba Cloud) 的 Access Key 开头标识一般是 &ldquo;LTAI&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">LTAI</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">12,20</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><ul>
+<li>Access Key ID长度为16-24个字符，由大写字母和数字组成。</li>
+<li>Access Key Secret长度为30个字符，由大写字母、小写字母和数字组成。</li>
+</ul>
+<h4 id="腾讯云">腾讯云</h4>
+<p>腾讯云 (Tencent Cloud) 的 Access Key 开头标识一般是 &ldquo;AKID&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AKID</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">13,20</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><ul>
+<li>SecretId长度为17个字符，由字母和数字组成。</li>
+<li>SecretKey长度为40个字符，由字母和数字组成。</li>
+</ul>
+<h4 id="华为云">华为云</h4>
+<p>华为云 (Huawei Cloud) 的 Access Key 是20个随机大写字母和数字组成，较难用正则表达式匹配。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">[</span><span style="color:#f92672">A-Z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">20</span>}
+</span></span></code></pre></div><h4 id="百度云">百度云</h4>
+<p>百度云 (Baidu Cloud) 的 Access Key 开头标识一般是 &ldquo;AK&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AK</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="京东云">京东云</h4>
+<p>京东云 (JD Cloud) 的 Access Key 开头标识一般是 &ldquo;JDC_&quot;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">JDC_</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">28,32</span>}
+</span></span></code></pre></div><h4 id="字节跳动火山引擎">字节跳动火山引擎</h4>
+<p>字节跳动火山引擎 (Volcengine) 的 Access Key 开头标识一般是 &ldquo;AKLT&rdquo;，长度小于256位。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AKLT</span><span style="color:#f92672">[</span><span style="color:#f92672">a-zA-Z0-9-_</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">0,252</span>}
+</span></span></code></pre></div><h4 id="ucloud">UCloud</h4>
+<p>UCloud (UCloud) 的 Access Key 开头标识一般是 &ldquo;UC&rdquo;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">UC</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="青云">青云</h4>
+<p>青云 (QingCloud) 的 Access Key 开头标识一般是 &ldquo;QY&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">QY</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="金山云">金山云</h4>
+<p>金山云 (Kingsoft Cloud) 的 Access Key 开头标识一般是 &ldquo;AKLT&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">AKLT</span><span style="color:#f92672">[</span><span style="color:#f92672">a-zA-Z0-9-_</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">16,28</span>}
+</span></span></code></pre></div><h4 id="联通云">联通云</h4>
+<p>联通云 (China Unicom Cloud) 的 Access Key 开头标识一般是 &ldquo;LTC&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">LTC</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,60</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="移动云">移动云</h4>
+<p>移动云 (China Mobile Cloud) 的 Access Key 开头标识一般是 &ldquo;YD&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">YD</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,60</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="电信云">电信云</h4>
+<p>中国电信云 (China Telecom Cloud) 的 Access Key 开头标识一般是 &ldquo;CTC&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">CTC</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,60</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="一云通">一云通</h4>
+<p>一云通 (YiYunTong Cloud) 的 Access Key 开头标识一般是 &ldquo;YYT&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">YYT</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,60</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="用友云">用友云</h4>
+<p>用友云 (Yonyou Cloud) 的 Access Key 开头标识一般是 &ldquo;YY&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">YY</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="南大通用云">南大通用云</h4>
+<p>南大通用云 (OUCDC) 的 Access Key 开头标识一般是 &ldquo;CI&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">CI</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,40</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div><h4 id="g-core-labs">G-Core Labs</h4>
+<p>G-Core Labs 的 Access Key 开头标识一般是 &ldquo;gcore&rdquo;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">^</span><span style="color:#f92672">gcore</span><span style="color:#f92672">[</span><span style="color:#f92672">A-Za-z0-9</span><span style="color:#f92672">]</span>{<span style="color:#960050;background-color:#1e0010">10,30</span>}<span style="color:#f92672">$</span>
+</span></span></code></pre></div>
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

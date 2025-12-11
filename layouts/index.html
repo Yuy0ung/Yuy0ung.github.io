@@ -1,0 +1,42 @@
+{{ define "main" }}
+<div class="container">
+  <div class="sidebar-left tree">
+    <h3>Directory</h3>
+    {{ $blog := site.GetPage "/blog" }}
+    {{ if not $blog }}
+      {{ $blog = site.GetPage "blog" }}
+    {{ end }}
+
+    {{ if $blog }}
+      {{ partial "tree.html" $blog }}
+    {{ else }}
+      <p>Blog section not found.</p>
+    {{ end }}
+  </div>
+  <div class="content-center">
+    <h1>{{ .Site.Title }}</h1>
+    
+    <!-- Render the tree again in the center for the homepage -->
+    <div class="homepage-tree tree">
+        {{ $blog := site.GetPage "/blog" }}
+        {{ if not $blog }}
+          {{ $blog = site.GetPage "blog" }}
+        {{ end }}
+    
+        {{ if $blog }}
+          {{ partial "tree.html" $blog }}
+        {{ end }}
+    </div>
+
+    <div class="markdown-body">
+      <!-- Only render content if this is NOT the homepage, or if the homepage explicitly has content in _index.md that isn't just a list -->
+      {{ if not .IsHome }}
+        {{ .Content }}
+      {{ end }}
+    </div>
+  </div>
+  <div class="sidebar-right">
+    <!-- Empty for homepage -->
+  </div>
+</div>
+{{ end }}

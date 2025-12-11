@@ -1,0 +1,37 @@
+{{ define "main" }}
+<div class="container">
+  <div class="sidebar-left tree">
+    <h3>Directory</h3>
+    {{ $blog := site.GetPage "/blog" }}
+    {{ if not $blog }}
+      {{ $blog = site.GetPage "blog" }}
+    {{ end }}
+
+    {{ if $blog }}
+      {{ partial "tree.html" $blog }}
+    {{ else }}
+      <p>Blog section not found.</p>
+    {{ end }}
+  </div>
+  <div class="content-center">
+    <article class="markdown-body">
+      <h1>{{ .Title }}</h1>
+      <div style="margin-bottom: 20px; color: var(--text-color); opacity: 0.7; font-size: 0.9em;">
+        <!-- Use a safe default if Date is missing -->
+        {{ if .Date }}
+            {{ .Date.Format "2006-01-02" }}
+        {{ end }}
+      </div>
+      {{ .Content }}
+    </article>
+  </div>
+  <div class="sidebar-right">
+    <h3>On this page</h3>
+    <nav id="TableOfContents">
+      <!-- .TableOfContents can sometimes cause issues if content is weird, but usually safe.
+           If 500 persists, we will remove this. -->
+      {{ .TableOfContents }}
+    </nav>
+  </div>
+</div>
+{{ end }}

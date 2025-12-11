@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Docker安全概览 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>Docker安全概览</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="docker安全概览">Docker安全概览</h1>
+<p>前面的文章已经简单介绍了docker容器相关概念，docker的使用对于接触过ctf出题的人来说还是相对熟悉了，这里也不做过多介绍，接下来从安全的角度来分析一下docker</p>
+<h2 id="docker面临的风险">Docker面临的风险</h2>
+<h3 id="镜像风险">镜像风险</h3>
+<p>镜像的内容是由用户进行配置的，所以有可能造成一些安全问题</p>
+<h4 id="不安全的第三方组件">不安全的第三方组件</h4>
+<p>比如在镜像中引入了一些具有严重nday的组件，毫无疑问，这个镜像也就存在漏洞了</p>
+<h4 id="不安全的镜像">不安全的镜像</h4>
+<p>类似供应链攻击，在公共镜像仓库比如 Docker Hub 里，会存在一些有漏洞的镜像或者恶意镜像，如果使用了这些镜像那就存在风险了</p>
+<h4 id="敏感信息泄漏">敏感信息泄漏</h4>
+<p>如果在镜像开发完毕后没有删除自己配置的api key、AK/SK等，那么如果别人获取到该镜像就可能造成敏感信息泄漏</p>
+<h3 id="活动中的容器风险">活动中的容器风险</h3>
+<p>容器在运行时也有一些能够用户自定义的配置，这些配置不当同样可能造成风险</p>
+<h4 id="不安全的容器应用">不安全的容器应用</h4>
+<p>比如映射出来的端口的服务存在漏洞，那么自然会导致风险</p>
+<h4 id="不受限制的资源共享">不受限制的资源共享</h4>
+<p>容器运行在宿主机上，容器必然要使用宿主机的各种 CPU、内存等资源，如果没有对容器进行资源使用限制，那么就存在宿主机被资源耗尽的风险</p>
+<h4 id="不安全的配置挂载">不安全的配置/挂载</h4>
+<p>正常来说，容器有两大隔离机制：</p>
+<ul>
+<li>linux命名空间：实现文件系统、网络、进程、主机名等方面的隔离</li>
+<li>linux控制组：实现CPU、内存、硬盘等方面的隔离</li>
+</ul>
+<p>而配置不当会导致容器本身隔离机制失效：</p>
+<ul>
+<li>&ndash;privileged：使容器内的 root 权限和宿主机上的 root 权限一致，权限隔离被打破</li>
+<li>&ndash;net=host：使容器与宿主机处于同一网络命名空间，网络隔离被打破</li>
+<li>&ndash;pid=host：使容器与宿主机处于同一进程命令空间，进程隔离被打破</li>
+<li>&ndash;volume /:/host：宿主机根目录被挂载到容器内部，文件系统隔离被打破</li>
+</ul>
+<h3 id="容器管理程序接口风险">容器管理程序接口风险</h3>
+<p>Docker 守护进程主要监听 UNIX socket 和 TCP socket，默认情况下，Docker 只会监听 UNIX socket</p>
+<h4 id="unix-socket">UNIX socket</h4>
+<p>风险主要在于Docker守护进程默认以宿主机的root权限运行，说到这里其实熟悉后渗透的师傅都能想到，可以利用这一点进行提权，除此之外我们还可以利用这点进行容器逃逸，这类风险有两个利用场景</p>
+<ul>
+<li>
+<p><strong>普通用户被加到Docker用户组内</strong></p>
+<p>如果普通用户被加入到 Docker 用户组内，那么普通用户也将有权限访问 Docker UNIX socket，如果攻击者获得了这个普通用户权限，就可以借助 Docker 提权到 root 用户权限</p>
+</li>
+<li>
+<p><strong>Unix socket挂载到容器内部</strong></p>
+<p>有时为了实现容器内部管理容器，可能会将 Docker UNIX socket 挂载到容器内部，那么如果该容器被入侵，渗透测试人员就可以借助这个 socket 进行容器逃逸获得宿主机 root 权限</p>
+</li>
+</ul>
+<h4 id="tcp-socket">TCP socket</h4>
+<p>现在 Docker 守护进程默认不会监听 TCP socket，不过有时可能用户会因为方便开启 TCP socket 的监听，一般默认监听端口是 2375</p>
+<p>默认情况下，Docker 守护进程 TCP socket 是无加密无认证的，因此如果发现宿主机 Docker 开放了 TCP socket，就可以直接使用 docker -H 接管目标的容器</p>
+<h3 id="其他风险">其他风险</h3>
+<ul>
+<li>容器网络：可能存在横向的风险</li>
+<li>宿主机操作：容器通常与宿主机共享内核，若宿主机内核存在漏洞那么容器也可能存在相同漏洞，比如利用脏牛实现容器逃逸</li>
+<li>软件自身：即Docker自身存在的漏洞比如CVE-2019-14271、CVE-2019-5736 等可以导致容器逃逸</li>
+</ul>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

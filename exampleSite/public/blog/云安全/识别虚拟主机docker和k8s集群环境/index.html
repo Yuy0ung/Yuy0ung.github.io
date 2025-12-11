@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>识别虚拟主机、Docker和K8s集群环境 | My Hugo Knowledgebase</title>
+
+    <link rel="stylesheet" href="/css/main.css">
+
+
+      <script src="/js/main.js"></script>
+
+
+</head>
+<body>
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+  <a href="/" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">My Hugo Knowledgebase</a>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode" style="font-size: 0.9em;">
+    Theme
+  </button>
+</div>
+
+  </header>
+  <main>
+    
+  <h1>识别虚拟主机、Docker和K8s集群环境</h1>
+
+  
+  
+  <time datetime="2025-01-01T00:00:00&#43;08:00">January 1, 2025</time>
+
+  <h1 id="识别虚拟主机docker和k8s集群环境">识别虚拟主机、Docker和K8s集群环境</h1>
+<h3 id="一基础">一、基础</h3>
+<p>随着云原生应用不断普及，在我们getshell之后，我们还需要判断该shell是否处于虚拟环境中，并判断该虚拟环境的类型，通常情况下，shell的虚拟环境可能有如下三个类型：</p>
+<ul>
+<li>
+<h5 id="虚拟主机"><strong>虚拟主机</strong></h5>
+<p>虚拟主机是指在一台物理服务器上运行的多个虚拟主机实例，每个虚拟主机实例都拥有自己的环境和资源，通常用于提供Web托管服务</p>
+<p><strong>注意</strong>：虚拟主机（Virtual Hosting）和虚拟机（Virtual Machine）是两个不同的概念，虚拟机是一个完整的虚拟化系统，包括操作系统、软件和硬件，可以在单个物理服务器上运行多个操作系统实例</p>
+</li>
+<li>
+<h5 id="docker"><strong>Docker</strong></h5>
+<p>Docker是一种虚拟化技术，利用容器化的方式将应用程序及其依赖项打包成独立、轻量级的环境，实现快速部署、高效运行和跨平台运行的功能</p>
+</li>
+<li>
+<h5 id="k8s"><strong>K8s</strong></h5>
+<p>Kubernetes（通常简写为K8s）是一个开源的容器编排平台，通过自动化部署、扩展和管理容器化应用，实现高可用性、弹性和灵活性。它提供了集群管理、服务发现、负载均衡等功能，让用户可以更轻松地管理容器化应用的生命周期</p>
+</li>
+</ul>
+<h3 id="二思路">二、思路</h3>
+<p>如果shell处于虚拟主机、Docker或K8s集群环境中，我们需要对环境进行识别，并采取针对性的措施，比如：</p>
+<ul>
+<li>
+<p><strong>虚拟主机</strong>：通常考虑横向移动来扩大攻击效果</p>
+</li>
+<li>
+<p><strong>Docker</strong>：通常先进行容器逃逸，再进行内网横向移动</p>
+</li>
+<li>
+<p><strong>K8s</strong>：通常先尝试接管集群，以获取对容器和集群资源的完全控制</p>
+</li>
+</ul>
+<h3 id="三识别">三、识别</h3>
+<p>首先判断当前shell是否采用了虚拟化技术：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>systemd-detect-virt		<span style="color:#75715e">#识别系统虚拟机（VM）、容器还是裸机上运行</span>
+</span></span></code></pre></div><p>在确认采用了虚拟化技术后，常有如下检测方法可以快速识别当前所处环境类型</p>
+<ul>
+<li>
+<h5 id="查看主机名和进程"><strong>查看主机名和进程</strong></h5>
+<p>容器的主机名默认随机生成的字符串，PID1非系统进程，可初步判断当前为容器环境</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>hostname	<span style="color:#75715e">#查看主机名</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ps aux		<span style="color:#75715e">#显示系统上所有用户的详细进程信息</span>
+</span></span></code></pre></div></li>
+<li>
+<h5 id="通过利用cgroup信息的差异"><strong>通过利用cgroup信息的差异</strong></h5>
+<p>通过查看cgroup信息，可以判断当前环是否是虚拟机、Docker容器或K8s集群:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cat /proc/1/cgroup	<span style="color:#75715e">#用于查看进程ID为1的系统进程（通常是Init进程）所属的cgroup信息，即用于控制和管理进程资源使用的容器技术</span>
+</span></span></code></pre></div><p>也可以针对性的查找关键词，例如针对Docker字符串：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>grep <span style="color:#e6db74">&#39;docker&#39;</span> /proc/1/cgroup	<span style="color:#75715e">#查找是否存在‘Docker’字符串</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>检查根目录下.dockerenv文件</strong></p>
+<p>通过判断根目录下的.dockerenv文件是否存在，确认当前环是否为容器环境:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>ls -alh/dockerenv	<span style="color:#75715e">#列出/dockerenv目录下的所有文件和目录，并显示详细信息以及人类可读的文件大小</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>通过检查挂载信息</strong></p>
+<p>通过检查挂载信息，推测当前环境是虚拟机、Docker容器还是K8s集群:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mount lgrep <span style="color:#e6db74">&#39;/type&#39;</span>	<span style="color:#75715e">#从当前系统中列出所有已挂载的文件系统，并使用grep命令筛选出包含/type路径的挂载信息</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>查看硬盘信息</strong></p>
+<p>通过查看硬盘信息，推断当前环境是否为容器环境:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>fdisk -l <span style="color:#75715e">#列出系统上所有磁盘的分区信息</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>获取当前环境的文件系统和挂载点信息</strong></p>
+<p>获取当前环境的文件系统和挂载点信息，用来判断是否容器环境:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>df -h	<span style="color:#75715e">#显示文件系统的磁盘使用情况和挂载点信息</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>通过了解环境变量包含的信息</strong></p>
+<p>通过检查环境变量，了解特定环境的信息:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>env 	<span style="color:#75715e">#显示当前系统环境中的所有环境变量</span>
+</span></span></code></pre></div></li>
+</ul>
+<h3 id="四反制">四、反制</h3>
+<p>对于防守者而言，通过了解攻击者在云原生环境中可能采取的这些信息探测行为，可以建立有效的告警机制，以便及早发现潜在的攻击行为</p>
+
+  
+
+
+  </main>
+  <footer>
+    <p>Copyright 2025. All rights reserved.</p>
+
+  </footer>
+</body>
+</html>
