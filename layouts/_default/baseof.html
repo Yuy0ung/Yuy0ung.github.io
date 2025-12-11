@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="{{ site.Language.LanguageCode }}" dir="{{ or site.Language.LanguageDirection `ltr` }}">
+<head>
+  {{ partial "head.html" . }}
+</head>
+<body>
+  <header>
+    {{ partial "header.html" . }}
+  </header>
+  <main>
+    {{ block "main" . }}{{ end }}
+  </main>
+  
+  <!-- Search Modal -->
+  <div id="search-modal" class="search-modal">
+    <div class="search-modal-content">
+      <div class="search-input-wrapper">
+        <input type="text" id="search-input" placeholder="搜索文章标题或内容...">
+        <span class="search-loading" style="display: none;">Loading...</span>
+      </div>
+      <div id="search-results" class="search-results"></div>
+      <div class="search-footer">
+        <span>ESC 关闭</span>
+        <span>↑↓ 选择</span>
+        <span>Enter 跳转</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

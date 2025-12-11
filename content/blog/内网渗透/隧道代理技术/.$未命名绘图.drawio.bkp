@@ -1,0 +1,60 @@
+<mxfile host="Electron" modified="2024-06-19T18:56:55.580Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.4.8 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="2b02SViXbI_JfpWkoy18" version="24.4.8" type="device">
+  <diagram name="Page-1" id="55a83fd1-7818-8e21-69c5-c3457e3827bb">
+    <mxGraphModel dx="1206" dy="702" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" background="none" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="69ecfefc5c41e42c-3" value="Firewall" style="image;html=1;labelBackgroundColor=#ffffff;image=img/lib/clip_art/networking/Firewall_128x128.png;rounded=1;shadow=0;comic=0;strokeWidth=2;fontSize=22;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="395" y="260" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" target="69ecfefc5c41e42c-3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="220" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-6" value="攻击者vps" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=19;" vertex="1" parent="1">
+          <mxGeometry x="195" y="340" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-10" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="CZJEwFCOGIXsG6bjBJn6-16" target="69ecfefc5c41e42c-3">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="285" y="300" as="sourcePoint" />
+            <mxPoint x="355" y="300" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-17" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="CZJEwFCOGIXsG6bjBJn6-16">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="285" y="300" as="sourcePoint" />
+            <mxPoint x="395" y="300" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-16" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/internet_cloud.svg;" vertex="1" parent="1">
+          <mxGeometry x="315" y="284.25" width="50" height="31.5" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-18" value="internet" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="300" y="315.75" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-19" value="内网主机" style="image;html=1;labelBackgroundColor=#ffffff;image=img/lib/clip_art/computers/Monitor_Tower_128x128.png;rounded=1;shadow=0;comic=0;strokeWidth=2;fontSize=22" vertex="1" parent="1">
+          <mxGeometry x="669.2" y="345.75" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-21" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;startArrow=classic;endSize=8;startSize=8;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.497;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="CZJEwFCOGIXsG6bjBJn6-24" target="CZJEwFCOGIXsG6bjBJn6-19">
+          <mxGeometry width="100" relative="1" as="geometry">
+            <mxPoint x="710" y="310" as="sourcePoint" />
+            <mxPoint x="610" y="370" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-23" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/mainframe_host.svg;" vertex="1" parent="1">
+          <mxGeometry x="670" y="160" width="79.2" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-24" value="外网主机" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=19;" vertex="1" parent="1">
+          <mxGeometry x="659.6" y="265" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CZJEwFCOGIXsG6bjBJn6-26" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.servers.physical_host;fillColor=#2072B8;" vertex="1" parent="1">
+          <mxGeometry x="225" y="260" width="50" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,16 +1,36 @@
+{{ $page := . }}
+{{ $showDate := false }}
+{{ $collapsed := false }}
+
+{{ if reflect.IsMap . }}
+  {{ $page = .Page }}
+  {{ $showDate = .ShowDate }}
+  {{ if .Collapsed }}
+    {{ $collapsed = .Collapsed }}
+  {{ end }}
+{{ end }}
+
 <ul class="tree-list">
-  {{ range .Pages }}
+  {{ range where $page.Pages "IsSection" false }}
     <li>
-      {{ if .IsSection }}
-        <span class="tree-toggle expanded"></span>
-        <a href="{{ .RelPermalink }}" class="section-link"><strong>{{ .Title }}</strong></a>
-        <div class="tree-children">
-          {{ partial "tree.html" . }}
-        </div>
-      {{ else }}
-        <span style="width: 15px; display: inline-block;"></span>
+      <div class="tree-item-wrapper">
+        <span style="width: 15px; display: inline-block; flex-shrink: 0;"></span>
         <a href="{{ .RelPermalink }}" class="article-link" data-summary="{{ .Summary | plainify | htmlEscape }}">{{ .Title }}</a>
-      {{ end }}
+        {{ if $showDate }}
+          <div class="tree-dashed-line"></div>
+          <span class="tree-date">{{ .Date.Format "2006-01-02" }}</span>
+        {{ end }}
+      </div>
+    </li>
+  {{ end }}
+  
+  {{ range (where $page.Pages "IsSection" true).ByWeight }}
+    <li>
+      <span class="tree-toggle {{ if $collapsed }}collapsed{{ else }}expanded{{ end }}"></span>
+      <span class="section-link" style="cursor: pointer;"><strong>{{ .Title }}</strong></span>
+      <div class="tree-children {{ if $collapsed }}hidden{{ end }}" {{ if $collapsed }}style="display: none;"{{ end }}>
+        {{ partial "tree.html" (dict "Page" . "ShowDate" $showDate "Collapsed" $collapsed) }}
+      </div>
     </li>
   {{ end }}
 </ul>

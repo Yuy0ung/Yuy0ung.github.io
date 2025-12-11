@@ -1,18 +1,6 @@
 {{ define "main" }}
 <div class="container">
-  <div class="sidebar-left tree">
-    <h3>Directory</h3>
-    {{ $blog := site.GetPage "/blog" }}
-    {{ if not $blog }}
-      {{ $blog = site.GetPage "blog" }}
-    {{ end }}
-
-    {{ if $blog }}
-      {{ partial "tree.html" $blog }}
-    {{ else }}
-      <p>Blog section not found.</p>
-    {{ end }}
-  </div>
+  {{ partial "sidebar-left.html" . }}
   <div class="content-center">
     <h1>{{ .Site.Title }}</h1>
     
@@ -24,8 +12,8 @@
         {{ end }}
     
         {{ if $blog }}
-          {{ partial "tree.html" $blog }}
-        {{ end }}
+      {{ partial "tree.html" (dict "Page" $blog "ShowDate" true) }}
+    {{ end }}
     </div>
 
     <div class="markdown-body">
@@ -34,6 +22,7 @@
         {{ .Content }}
       {{ end }}
     </div>
+    {{ partial "footer.html" . }}
   </div>
   <div class="sidebar-right">
     <!-- Empty for homepage -->

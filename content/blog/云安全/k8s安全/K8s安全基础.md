@@ -1,5 +1,5 @@
 ---
-title: "Kubernetes安全基础"
+title: "K8s安全基础"
 date: 2025-01-01T00:00:00+08:00
 draft: false
 ---

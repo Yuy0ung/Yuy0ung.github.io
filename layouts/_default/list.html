@@ -1,0 +1,21 @@
+{{ define "main" }}
+<div class="container">
+  {{ partial "sidebar-left.html" . }}
+  <div class="content-center">
+    <h1>{{ .Title }}</h1>
+    <div class="markdown-body">
+      {{ .Content }}
+      
+      <!-- List sub-pages if it's a section -->
+      <ul>
+      {{ range .Pages }}
+        <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+      {{ end }}
+      </ul>
+    </div>
+  </div>
+  <div class="sidebar-right">
+    <!-- Empty for list pages usually, or could put something else -->
+  </div>
+</div>
+{{ end }}

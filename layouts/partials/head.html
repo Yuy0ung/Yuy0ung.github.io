@@ -1,5 +1,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width">
 <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ printf "%s | %s" .Title site.Title }}{{ end }}</title>
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('theme');
+    const html = document.documentElement;
+    if (savedTheme) {
+      html.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      html.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
 {{ partialCached "head/css.html" . }}
 {{ partialCached "head/js.html" . }}
