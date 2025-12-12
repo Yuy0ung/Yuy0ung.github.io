@@ -130,12 +130,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(tooltip);
 
   let hoverTimeout;
-  const articleLinks = document.querySelectorAll('.article-link');
+  // Only enable preview on homepage center content, not sidebars
+  const articleLinks = document.querySelectorAll('.homepage-tree .article-link');
 
   articleLinks.forEach(link => {
     link.addEventListener('mouseenter', (e) => {
+      // Disable on mobile (narrow viewport)
+      if (window.innerWidth <= 768) return;
+
       const summary = link.getAttribute('data-summary');
       if (!summary) return;
+
+      // Capture initial mouse position
+      const initialX = e.clientX;
+      const initialY = e.clientY;
 
       hoverTimeout = setTimeout(() => {
         // Limit summary length
@@ -143,17 +151,28 @@ document.addEventListener('DOMContentLoaded', () => {
         tooltip.textContent = truncatedSummary;
         tooltip.style.display = 'block';
         
-        // Position tooltip
-        const rect = link.getBoundingClientRect();
-        // Check if tooltip goes off screen
-        let left = rect.right + 10;
-        if (left + 300 > window.innerWidth) {
-            left = rect.left - 310;
+        // Position tooltip based on mouse coordinates (fixed position)
+        // Add a small offset so cursor doesn't cover text
+        let left = initialX + 15;
+        let top = initialY + 15;
+
+        // Boundary check: prevent going off-screen
+        const tooltipWidth = 500; // Approximate max width
+        if (left + tooltipWidth > window.innerWidth) {
+            left = initialX - tooltipWidth - 15; // Show to the left if space is tight
+        }
+        
+        // Ensure it doesn't go below screen
+        // We can't easily know height before render, but we can guess or use bottom alignment
+        if (top + 150 > window.innerHeight) {
+             top = initialY - 140; // Flip up
         }
         
         tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${rect.top}px`;
-      }, 1000);
+        tooltip.style.top = `${top}px`;
+        // Ensure tooltip uses fixed positioning relative to viewport
+        tooltip.style.position = 'fixed';
+      }, 500);
     });
 
     link.addEventListener('mouseleave', () => {
