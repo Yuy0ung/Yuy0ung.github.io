@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const titleMatch = item.title && item.title.toLowerCase().includes(query);
       const contentMatch = item.content && item.content.toLowerCase().includes(query);
       return titleMatch || contentMatch;
-    }).slice(0, 10); // Limit to 10 results
+    }).slice(0, 50); // Limit to 50 results
 
     renderResults(results);
   });
