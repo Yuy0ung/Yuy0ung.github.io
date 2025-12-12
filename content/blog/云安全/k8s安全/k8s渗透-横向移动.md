@@ -10,7 +10,7 @@ draft: false
 
 ### kubeconfig凭证
 
-kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在我的 [k8s渗透-初始访问](https://www.cnblogs.com/yuy0ung/articles/19031290) 笔记中已经介绍了，这里不再说明
+kubeconfig文件通常出现在运维PC、内网跳板机、堡垒机、master节点等机器上，kubeconfig文件的使用在我的 [k8s渗透-初始访问](https://yuy0ung.github.io/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E5%88%9D%E5%A7%8B%E8%AE%BF%E9%97%AE/) 笔记中已经介绍了，这里不再说明
 
 ### secret对象
 

@@ -12,7 +12,7 @@ Docker相关安全风险更多集中在Docker逃逸方面
 
 ## 判断是否为容器环境
 
-在之前的文章中也提到过，可以通过查看cgroup信息等方法来判断，可以参考我的这篇笔记：[快速识别虚拟主机、Docker和K8s集群环境](https://www.cnblogs.com/yuy0ung/articles/18220591)
+在之前的文章中也提到过，可以通过查看cgroup信息等方法来判断，可以参考我的这篇笔记：[快速识别虚拟主机、Docker和K8s集群环境](https://yuy0ung.github.io/blog/%E4%BA%91%E5%AE%89%E5%85%A8/%E8%AF%86%E5%88%AB%E8%99%9A%E6%8B%9F%E4%B8%BB%E6%9C%BAdocker%E5%92%8Ck8s%E9%9B%86%E7%BE%A4%E7%8E%AF%E5%A2%83/)
 
 不过查看cgroup目录的方法似乎只对cgroup v1有用，所以推荐使用查看根目录.dockerenv的办法：
 ~~~sh
@@ -351,7 +351,7 @@ docker -H tcp://xx.xx.xx.xx:2375 run -it -v /:/yuy0ung nginx:latest /bin/bash
 
 这些内核漏洞通常是一些CVE，以CVE-2016-5195（dirty cow）为例：
 
-和权限提升时的dirty利用方法差不太多，之所以能实现逃逸，是因为docker与宿主机共享内核，如果要触发这个漏洞，需要宿主机存在dirtyCow漏洞的宿主机，其他的利用细节不再赘述，可以参考我的这篇文章：[linux提权-内核提权](https://www.cnblogs.com/yuy0ung/articles/18326546)
+和权限提升时的dirty利用方法差不太多，之所以能实现逃逸，是因为docker与宿主机共享内核，如果要触发这个漏洞，需要宿主机存在dirtyCow漏洞的宿主机，其他的利用细节不再赘述，可以参考我的这篇文章：[linux提权-内核提权](https://yuy0ung.github.io/blog/%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/linux%E6%8F%90%E6%9D%83/linux%E5%86%85%E6%A0%B8%E6%8F%90%E6%9D%83/)
 
 除了脏牛，还有很多内核漏洞导致的逃逸，这里列举一些就不细讲了：
 

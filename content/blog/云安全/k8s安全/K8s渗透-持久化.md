@@ -18,7 +18,7 @@ draft: false
 
 ### 挂载目录
 
-向创建的pod中挂载一些用于逃逸的目录，在我的逃逸相关文章详细记录了：[K8s渗透-权限提升](https://www.cnblogs.com/yuy0ung/articles/19054753)
+向创建的pod中挂载一些用于逃逸的目录，在我的逃逸相关文章详细记录了：[K8s渗透-权限提升](https://yuy0ung.github.io/blog/%E4%BA%91%E5%AE%89%E5%85%A8/k8s%E5%AE%89%E5%85%A8/k8s%E6%B8%97%E9%80%8F-%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/)
 
 这里值得一提的是，我们可以使用这个配置：
 ~~~yaml
@@ -158,7 +158,7 @@ kubectl delete cronjob test-rev-cron
 
 ### 容器植入后门
 
-这里的即对pod容器进行一些基础的维持，方法和常规linux权限维持相似，可以参考我的这篇文章：[linux权限维持](https://www.cnblogs.com/yuy0ung/articles/18591381)
+这里的即对pod容器进行一些基础的维持，方法和常规linux权限维持相似，可以参考我的这篇文章：[linux权限维持](https://yuy0ung.github.io/blog/%E5%86%85%E7%BD%91%E6%B8%97%E9%80%8F/%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81/linux%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81/)
 
 ### 向镜像植入后门
 

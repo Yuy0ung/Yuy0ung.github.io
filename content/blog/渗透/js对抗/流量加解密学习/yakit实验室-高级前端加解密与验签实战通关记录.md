@@ -10,7 +10,7 @@ draft: false
 
 这里默认读者已经拥有js逆向基础，不会细讲一些知识点了，更多是过程体现，以及如何配合galaxy实现自动的加解密
 
-galaxy的基础使用可以看我这篇文章：[网站流量加解密场景入门&Galaxy使用](https://www.cnblogs.com/yuy0ung/articles/18868558)
+galaxy的基础使用可以看我这篇文章：[网站流量加解密场景入门&Galaxy使用](https://yuy0ung.github.io/blog/%E6%B8%97%E9%80%8F/js%E5%AF%B9%E6%8A%97/%E6%B5%81%E9%87%8F%E5%8A%A0%E8%A7%A3%E5%AF%86%E5%AD%A6%E4%B9%A0/%E7%BD%91%E7%AB%99%E6%B5%81%E9%87%8F%E5%8A%A0%E8%A7%A3%E5%AF%86-galaxy%E4%BD%BF%E7%94%A8/)
 
 文中我编写的的http hook已经打包上传至我的github：https://github.com/Yuy0ung/galaxy_HttpHook_for_yakit-vulinbox，需要可以自取
 

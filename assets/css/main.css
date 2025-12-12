@@ -493,6 +493,32 @@ a:hover {
   color: var(--text-color);
 }
 
+/* Enhanced Article Link Styling */
+.markdown-body a:not(:has(img)):not(.anchor):not(.header-link) {
+  color: var(--link-color);
+  background-color: rgba(0, 102, 204, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border-bottom: 1px solid rgba(0, 102, 204, 0.25);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin: 0 2px;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .markdown-body a:not(:has(img)):not(.anchor):not(.header-link) {
+  background-color: rgba(55, 148, 255, 0.12);
+  border-bottom-color: rgba(55, 148, 255, 0.25);
+}
+
+.markdown-body a:not(:has(img)):not(.anchor):not(.header-link):hover {
+  background-color: var(--link-color);
+  color: var(--bg-color) !important;
+  border-bottom-color: transparent;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
 .markdown-body code {
   background-color: var(--code-bg);
   padding: 0.2em 0.4em;
