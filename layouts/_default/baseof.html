@@ -14,15 +14,25 @@
   <!-- Search Modal -->
   <div id="search-modal" class="search-modal">
     <div class="search-modal-content">
+      <!-- Mobile Header -->
+      <div class="mobile-search-header" style="display: none;">
+        <button id="mobile-exit-btn" class="mobile-icon-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+      </div>
+
       <div class="search-input-wrapper">
         <input type="text" id="search-input" placeholder="搜索文章标题或内容...">
+        <button id="mobile-search-btn" class="mobile-icon-btn mobile-search-submit" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
         <span class="search-loading" style="display: none;">第一次加载搜索功能可能需要一点时间...</span>
       </div>
       <div id="search-results" class="search-results"></div>
       <div class="search-footer">
-        <span>ESC 关闭</span>
-        <span>↑↓ 选择</span>
-        <span>Enter 跳转</span>
+        <span class="desktop-only">ESC 关闭</span>
+        <span class="desktop-only">↑↓ 选择</span>
+        <span class="desktop-only">Enter 跳转</span>
       </div>
     </div>
   </div>

@@ -1,14 +1,14 @@
-<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+<div class="header-inner">
   <!-- Left Side: Avatar, Title, Home Button -->
-  <div style="display: flex; align-items: center; gap: 12px;">
+  <div class="header-left">
     <!-- Avatar -->
-    <img src="{{ "avatar.jpg" | relURL }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background-color: var(--border-color);">
+    <img src="{{ "avatar.jpg" | relURL }}" alt="Avatar" class="header-avatar">
     
     <!-- Title -->
-    <a href="{{ site.Home.RelPermalink }}" style="font-weight: bold; font-size: 1.2em; text-decoration: none; color: var(--text-color);">{{ site.Title }}</a>
+    <a href="{{ site.Home.RelPermalink }}" class="header-title">{{ site.Title }}</a>
     
     <!-- Home Button -->
-    <a href="{{ site.Home.RelPermalink }}" style="display: flex; align-items: center; color: var(--text-color); text-decoration: none;" title="首页">
+    <a href="{{ site.Home.RelPermalink }}" class="header-home-btn" title="首页">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
         <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -17,9 +17,17 @@
   </div>
 
   <!-- Right Side: About Me, Theme Switch -->
-  <div style="display: flex; align-items: center; gap: 15px;">
+  <div class="header-right">
     <!-- About Me -->
-    <a href="https://github.com/Yuy0ung/" target="_blank" style="font-size: 0.9em; font-weight: bold; text-decoration: none; color: var(--text-color);">关于我</a>
+    <a href="https://github.com/Yuy0ung/" target="_blank" class="header-about-btn">关于我</a>
+
+    <!-- Mobile Search Button -->
+    <button id="mobile-search-trigger" class="mobile-search-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </button>
 
     <!-- Theme Switch -->
     <div class="theme-switch-wrapper">
@@ -44,6 +52,16 @@
           </svg>
         </div>
       </label>
+      <script>
+        // Sync checkbox immediately to prevent flash
+        (function() {
+          const html = document.documentElement;
+          const checkbox = document.getElementById('checkbox');
+          if (html.getAttribute('data-theme') === 'dark') {
+            checkbox.checked = true;
+          }
+        })();
+      </script>
     </div>
   </div>
 </div>

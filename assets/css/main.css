@@ -28,19 +28,87 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.3s, color 0.3s;
+  /* overflow-x: hidden; Removed to restore sticky behavior */
+  width: 100%;
 }
 
 header {
   height: var(--header-height);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 0 20px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-color);
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
+  box-sizing: border-box; /* Fix width calculation */
+}
+
+/* Header Styles */
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 1; /* Allow shrinking */
+  min-width: 0; /* Enable flex item truncation */
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--border-color);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-weight: bold;
+  font-size: 1.2em;
+  text-decoration: none;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-home-btn {
+  display: flex;
+  align-items: center;
+  color: var(--text-color);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.header-about-btn {
+  font-size: 0.9em;
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--text-color);
+}
+
+.mobile-search-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  padding: 0;
+  display: none;
 }
 
 /* Theme Switch */
@@ -325,6 +393,7 @@ input:checked + .slider .icon-moon {
   padding: 20px 40px;
   max-width: 900px;
   margin: 0 auto;
+  min-width: 0; /* Allow flex item to shrink below content size */
   /* Ensure it takes full width if needed */
 }
 
@@ -404,6 +473,8 @@ a:hover {
 /* Article Styling */
 .markdown-body {
   line-height: 1.6;
+  min-width: 0; /* Allow flex shrinking */
+  overflow-wrap: break-word; /* Prevent long words from overflowing */
 }
 
 /* Scroll Margin for Header Offset */
@@ -501,8 +572,35 @@ a:hover {
   margin: 0;
 }
 
+/* Table Styling */
+.markdown-body table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  border-spacing: 0;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid var(--border-color);
+}
+
+.markdown-body table tr {
+  background-color: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: var(--sidebar-bg);
+}
+
 /* Image Constraints */
-.markdown-body img {
+.markdown-body img,
+.markdown-body iframe,
+.markdown-body video {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
@@ -718,3 +816,117 @@ a:hover {
 [data-theme="dark"] .chroma .vi { color:#fd971f }
 [data-theme="dark"] .chroma .vm { color:#fd971f }
 [data-theme="dark"] .chroma .w { color:#2d2d2d }
+
+/* Mobile Compatibility */
+@media (max-width: 768px) {
+  /* Hide sidebars */
+  .sidebar-left,
+  .sidebar-right {
+    display: none;
+  }
+
+  /* Full width content */
+  .content-center {
+    width: 100%;
+    padding: 20px;
+    max-width: 100%;
+  }
+
+  /* Show mobile search button in header */
+  .mobile-search-btn {
+    display: block !important;
+  }
+
+  /* Full screen search modal */
+  .search-modal {
+    padding-top: 0;
+    align-items: flex-start;
+    background-color: var(--bg-color); /* Solid background on mobile */
+  }
+
+  .search-modal-content {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-footer {
+    display: none; /* Hide footer on mobile */
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Mobile Header (Back Button) */
+  .mobile-search-header {
+    display: flex !important;
+    align-items: center;
+    padding: 10px 15px;
+    margin-top: env(safe-area-inset-top); /* Handle notch */
+  }
+
+  /* Round Search Box Wrapper */
+  .search-input-wrapper {
+    margin: 10px 20px 20px 20px;
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 24px; /* Round pill shape */
+    background-color: var(--sidebar-bg);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-color); /* Reset desktop style if needed, but here we override */
+  }
+
+  /* Input Styling */
+  #search-input {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    flex-grow: 1;
+    padding: 0;
+    height: auto;
+  }
+
+  /* Icon Buttons */
+  .mobile-icon-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: var(--text-color);
+  }
+  
+  .mobile-search-submit {
+    color: var(--link-color);
+  }
+  
+  /* Results Area */
+  .search-results {
+    padding: 0 10px;
+  }
+
+  /* Header Optimization for Mobile */
+  header {
+    padding: 0 10px; /* Smaller padding */
+    height: 50px; /* Smaller height */
+  }
+
+  .header-title {
+    font-size: 1rem; /* Smaller font */
+  }
+  
+  .header-about-btn {
+    display: none; /* Hide 'About Me' to save space if needed, or just make smaller */
+  }
+}

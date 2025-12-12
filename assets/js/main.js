@@ -341,6 +341,28 @@ document.addEventListener('DOMContentLoaded', () => {
     searchTrigger.addEventListener('click', openSearch);
   }
 
+  const mobileSearchTrigger = document.getElementById('mobile-search-trigger');
+  if (mobileSearchTrigger) {
+    mobileSearchTrigger.addEventListener('click', openSearch);
+  }
+
+  // Mobile Search & Exit Buttons
+  const mobileExitBtn = document.getElementById('mobile-exit-btn');
+  const mobileSearchBtn = document.getElementById('mobile-search-btn');
+
+  if (mobileExitBtn) {
+    mobileExitBtn.addEventListener('click', closeSearch);
+  }
+
+  if (mobileSearchBtn) {
+    mobileSearchBtn.addEventListener('click', () => {
+      // Trigger search explicitly (for safety) and hide keyboard
+      const event = new Event('input', { bubbles: true });
+      searchInput.dispatchEvent(event);
+      searchInput.blur();
+    });
+  }
+
   // Escape to close
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && searchModal.classList.contains('open')) {
