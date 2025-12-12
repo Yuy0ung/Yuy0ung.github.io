@@ -1,5 +1,5 @@
 ---
-title: "CC2"
+title: "Java反序列化-CC2"
 date: 2025-12-11T00:00:00+08:00
 draft: false
 ---

@@ -1,5 +1,5 @@
 ---
-title: "Java反序列化链-CC4"
+title: "Java反序列化-CC4"
 date: 2025-12-11T00:00:00+08:00
 draft: false
 ---

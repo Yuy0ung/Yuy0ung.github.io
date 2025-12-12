@@ -33,6 +33,8 @@ title = 'Yuy0ung的知识库'
     endLevel = 6
     ordered = false
     startLevel = 1
+  [markup.goldmark.renderer]
+    unsafe = true
 
 [mediaTypes]
   [mediaTypes."application/json"]

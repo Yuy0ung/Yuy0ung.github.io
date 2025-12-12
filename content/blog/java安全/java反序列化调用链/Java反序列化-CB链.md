@@ -1,5 +1,5 @@
 ---
-title: "CB链"
+title: "Java反序列化-CB链"
 date: 2025-12-11T00:00:00+08:00
 draft: false
 ---
