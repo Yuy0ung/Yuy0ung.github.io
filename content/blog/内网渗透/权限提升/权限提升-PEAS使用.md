@@ -2,6 +2,7 @@
 title: "权限提升-PEAS使用"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # 权限提升-PEAS使用
@@ -22,7 +23,7 @@ draft: false
 winPEASany.exe
 ~~~
 
-![image-20240924212949293](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924212954653-1048033501.png)运行winpeas能搜索所有可能的提权路径，检查的信息如下
+![image-20240924212949293](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924212954653-1048033501.png)运行winpeas能搜索所有可能的提权路径，检查的信息如下
 
 - 系统信息
   - 基本系统信息
@@ -109,28 +110,28 @@ winPEASany.exe
   - **提取已保存的密码：Firefox、Chrome、Opera、Brave**
 - 有趣的文件和注册表
   -  Putty会话
-  - Putty SSH 主机密钥
-  - SuperPutty信息
-  - OneDrive 同步的 Office365 端点
-  - 注册表中的 SSH 密钥
-  - 云凭证
-  - 检查无人参与的文件
-  - 检查 SAM 和 SYSTEM 备份
-  - 检查缓存的 GPP 密码
-  - 从 McAffe SiteList.xml 文件中检查并提取凭据
-  - 可能的具有凭据的注册表
-  - 用户家中可能的凭据文件
-  - **回收站中可能存在的密码文件**
-  - 可能包含凭据的文件（这需要几分钟）
-  - 用户文件（限制 100 个）
-  - Oracle SQL Developer 配置文件检查
-  - Slack文件搜索
-  - Outlook 下载
-  - 机器和用户证书文件
-  - Office最近的文件
-  - 隐藏的文件和文件夹
-  - 具有写入权限的非默认文件夹中的可执行文件
-  - WSL 检查
+  -  Putty SSH 主机密钥
+  -  SuperPutty信息
+  -  OneDrive 同步的 Office365 端点
+  -  注册表中的 SSH 密钥
+  -  云凭证
+  -  检查无人参与的文件
+  -  检查 SAM 和 SYSTEM 备份
+  -  检查缓存的 GPP 密码
+  -  从 McAffe SiteList.xml 文件中检查并提取凭据
+  -  可能的具有凭据的注册表
+  -  用户家中可能的凭据文件
+  -  **回收站中可能存在的密码文件**
+  -  可能包含凭据的文件（这需要几分钟）
+  -  用户文件（限制 100 个）
+  -  Oracle SQL Developer 配置文件检查
+  -  Slack文件搜索
+  -  Outlook 下载
+  -  机器和用户证书文件
+  -  Office最近的文件
+  -  隐藏的文件和文件夹
+  -  具有写入权限的非默认文件夹中的可执行文件
+  -  WSL 检查
 - 活动信息
   - 登录 + 显式登录事件
   - 流程创建事件
@@ -190,7 +191,7 @@ chmod+x linpeas.sh
 ./linpeas.sh -h
 ~~~
 
-![image-20240924213930383](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924213933143-689263829.png)
+![image-20240924213930383](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924213933143-689263829.png)
 
 LinPEAS 使用颜色来指示每个部分的开始位置，也用来识别潜在的错误配置
 
@@ -264,4 +265,3 @@ LinPEAS 使用颜色来指示每个部分的开始位置，也用来识别潜在
       -t 自动网络扫描(主机发现和端口扫描)-此选项写入文件
          注意，如果指定一些网络扫描(options -d/-p/-i，但NOT -t)，将不会执行PE检查
 ~~~
-

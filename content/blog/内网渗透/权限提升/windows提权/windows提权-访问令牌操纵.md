@@ -2,6 +2,7 @@
 title: "windows提权-访问令牌操纵"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # windows提权-访问令牌操纵
@@ -59,7 +60,7 @@ Windows 的访问令牌（AccessToken） 有两种类型
   TokenUtil_x64.exe ListTokens -u "NT AUTHORITY\SYSTEM" 
   ~~~
 
-  ![image-20241010205643236](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010205644421-2139962666.png)
+  ![image-20241010205643236](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010205644421-2139962666.png)
 
 * 再试试用获取到的`NT AUTHORITY\SYSTEM`账户令牌执行命令：
 
@@ -67,7 +68,7 @@ Windows 的访问令牌（AccessToken） 有两种类型
   TokenUtil_x64.exe Execute -p 304 -e whoami -c 
   ~~~
 
-  ![image-20241010205755170](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010205755669-1838553159.png)
+  ![image-20241010205755170](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010205755669-1838553159.png)
 
 #### 利用metasploit窃取令牌
 
@@ -75,7 +76,7 @@ msf同样内置了incognito框架，可以直接使用
 
 * 首先使用msf控制目标主机的管理员权限：
 
-  ![image-20241010210909417](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010210910924-1008461156.png)
+  ![image-20241010210909417](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010210910924-1008461156.png)
 
 * 加载incognito，进行令牌窃取，用法如下：
 
@@ -86,7 +87,7 @@ msf同样内置了incognito框架，可以直接使用
   rev2self 或 drop_token #返回之前的token
   ~~~
 
-  ![image-20241010211514549](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010211515673-336327924.png)
+  ![image-20241010211514549](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010211515673-336327924.png)
 
 #### 通过令牌获取TrustedInstaller权限
 
@@ -102,7 +103,7 @@ TrustedInstaller本身也是一个服务，该服务启动时会运行`C:\Window
   sc start TrustedInstaller
   ~~~
 
-  ![image-20241010214800908](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010214802738-613089295.png)
+  ![image-20241010214800908](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010214802738-613089295.png)
 
 * 根据PID窃取token：
 
@@ -110,7 +111,7 @@ TrustedInstaller本身也是一个服务，该服务启动时会运行`C:\Window
   sc stop TrustedInstaller
   ~~~
 
-  ![image-20241010220632312](https://img2023.cnblogs.com/blog/3450279/202410/3450279-20241010220633133-1139526919.png)
+  ![image-20241010220632312](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241010220633133-1139526919.png)
 
 ### potato家族提权
 
@@ -236,4 +237,3 @@ UknowSec还有一个二开版本，自行了解
 `Juicy Potato` 的重写https://github.com/CCob/SweetPotato
 
 `COM/WinRM/Spoolsv` 的集合版，也就是 `Juicy/PrintSpoofer`，可用于从Windows 7 到 windows10/windows server2019的本地服务到system特权升级
-

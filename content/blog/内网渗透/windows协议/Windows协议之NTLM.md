@@ -2,6 +2,7 @@
 title: "Windows协议之NTLM"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # Windows协议之NTLM
@@ -43,7 +44,7 @@ SSP（Security Service Provider，安全服务提供者）是SSPI的实现者，
 
 可以用一张图表示SSPI、SSP和各种应用的关系：
 
-![image-20240527224739470](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240616204731100-347079760.png)
+![image-20240527224739470](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240616204731100-347079760.png)
 
 ### 二、LM Hash 加密算法
 
@@ -64,6 +65,7 @@ aad3b435b51404eeaad3b435b51404ee
 ##### 1.NTLM Hash加密流程
 
 NTLM Hash是由明文密码经过三步加密而成：
+
 ~~~NTLM
 NTLM Hash =md4(unicode(hex(password)))
 ~~~
@@ -111,7 +113,7 @@ NTLM协议是一种基于Challenge/Response（质询/响应）的验证机制，
 
 可画一张图概括一下：
 
-![image-20240529155528371](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240616204742391-933789950.png)
+![image-20240529155528371](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240616204742391-933789950.png)
 
 ##### 2.域环境下的NTLM认证
 
@@ -128,7 +130,7 @@ NTLM协议是一种基于Challenge/Response（质询/响应）的验证机制，
 
 画一张图来描述：
 
-![3450279-20240616204751686-1940031638](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240618181052281-566552702.png)
+![3450279-20240616204751686-1940031638](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240618181052281-566552702.png)
 
 ##### 3.NTLM v1与NTLM v2的区别
 
@@ -156,7 +158,7 @@ username::domain:challenge:HMAC-MD5:blob
 
 LmCompatibilityLevel值用来确定网络登录使用的质询/响应身份验证协议。该选项会影响客户端使用的身份验证协议的等级、协商的会话安全的等级以及服务器接受的身份验证的等级，其值对应含义如下表：
 
-![屏幕截图 2024-05-30 172409](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240616204758612-1185699058.png)
+![屏幕截图 2024-05-30 172409](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240616204758612-1185699058.png)
 
 LmCompatibilityLevel值的修改通常有两种方法： 
 
@@ -179,7 +181,7 @@ LmCompatibilityLevel值的修改通常有两种方法：
 
 可用图片概括上述过程：
 
-![image-20240530200806710](https://img2023.cnblogs.com/blog/3450279/202406/3450279-20240616204807160-673217470.png)
+![image-20240530200806710](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240616204807160-673217470.png)
 
 ##### 3.Net-NTLM v1 Hash破解
 

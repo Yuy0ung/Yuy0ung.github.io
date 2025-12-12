@@ -184,7 +184,7 @@ drop function sys_eval;
 
 了解基本原理和流程后，接下来用实际操作熟悉一下具体的利用手法
 
-* **vulnhub-Raven:2**：具体操作见我另一篇文章：[vulnhub-Raven:2 渗透记录](https://www.cnblogs.com/yuy0ung/articles/18290636)
+* **vulnhub-Raven:2**：具体操作见我另一篇文章：[vulnhub-Raven:2 渗透记录](https://yuy0ung.github.io/blog/%E6%B8%97%E9%80%8F/%E9%9D%B6%E5%9C%BA%E7%AC%94%E8%AE%B0/vulnhub/vulnhub-raven2%E9%9D%B6%E5%9C%BA%E7%AC%94%E8%AE%B0/)
 
 ## 二、写文件提权
 

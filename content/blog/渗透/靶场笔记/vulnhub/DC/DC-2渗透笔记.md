@@ -2,6 +2,7 @@
 title: "DC-2渗透笔记"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # vulnhub-DC:2渗透笔记
@@ -16,7 +17,7 @@ draft: false
 nmap -sP 192.168.111.0/24
 ~~~
 
-![image-20240715161830565](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715161831122-910763766.png)
+![image-20240715161830565](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715161831122-910763766.png)
 
 确定IP为192.168.111.144
 
@@ -28,7 +29,7 @@ nmap -sP 192.168.111.0/24
 nmap -sV -p- 192.168.111.144
 ~~~
 
-![image-20240715162050242](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715162050650-443741704.png)
+![image-20240715162050242](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715162050650-443741704.png)
 
 可以看到开放了两个端口：
 
@@ -39,7 +40,7 @@ nmap -sV -p- 192.168.111.144
 
 浏览器访问80端口看看：
 
-![image-20240715162402283](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715162402515-2105706616.png)
+![image-20240715162402283](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715162402515-2105706616.png)
 
 不能访问，但显示了个dc-2，这里涉及一个dns解析顺序的问题：
 
@@ -49,7 +50,7 @@ nmap -sV -p- 192.168.111.144
 
 所以我们修改C:/Windows/System32/drivers/etc/HOSTS文件进行host碰撞：
 
-![image-20240715162707796](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715162708133-71093939.png)
+![image-20240715162707796](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715162708133-71093939.png)
 
 ok现在再访问一下进入web服务：
 
@@ -67,7 +68,7 @@ ok现在再访问一下进入web服务：
 
 他这里应该是让我使用cewl进行密码攻击，但并不代表只有这种方法，我们接着看看
 
-![image-20240715162827987](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715162829194-1231726177.png)
+![image-20240715162827987](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715162829194-1231726177.png)
 
 依旧是通过wappalyzer得到web服务的基本信息：
 
@@ -79,7 +80,7 @@ ok现在再访问一下进入web服务：
 
 还是dirsearch扫一扫目录：
 
-![image-20240715173517298](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715173517979-1403181923.png)
+![image-20240715173517298](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715173517979-1403181923.png)
 
 没有什么特别有用的信息
 
@@ -103,7 +104,7 @@ cewl http://dc-2/ -w dict.txt			//保存在dict.txt中
 wpscan --url http://dc-2/ --enumerate u
 ~~~
 
-![image-20240715175237833](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715175238466-791836176.png)
+![image-20240715175237833](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715175238466-791836176.png)
 
 发现三个用户名，我们同样将他们保存至user.txt
 
@@ -113,11 +114,11 @@ wpscan --url http://dc-2/ --enumerate u
 wpscan --url http://dc-2/ -U user.txt -P dict.txt
 ~~~
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715175814875-460633213.png" alt="image-20240715175814731" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715175814875-460633213.png" alt="image-20240715175814731" style="zoom:150%;" />
 
 可以看见，jerry和tom的密码都被爆破出来了，让我们登录试试
 
-![image-20240715180346153](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715180346666-1951959271.png)
+![image-20240715180346153](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715180346666-1951959271.png)
 
 登录jerry的账号发现了flag2：**如果你无法利用WordPress并走捷径，还有另一种方式。希望你找到了另一个入口点。**
 
@@ -127,17 +128,17 @@ wpscan --url http://dc-2/ -U user.txt -P dict.txt
 
 我们收集到了2对账密，可以尝试一下是否能远程连接ssh：
 
-![image-20240715181720587](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715181721120-1250192673.png)
+![image-20240715181720587](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715181721120-1250192673.png)
 
  使用jerry的账密连接发现密码错误，而使用tom的账号连接成功，直接拿到shell
 
 在当前目录发现flag3.txt，但无法cat：
 
-![image-20240715182127405](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715182127664-933106760.png)
+![image-20240715182127405](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715182127664-933106760.png)
 
 使用vi看看：
 
-![image-20240715182015565](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715182015869-1398759624.png)
+![image-20240715182015565](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715182015869-1398759624.png)
 
 拿到flag3：**可怜的老汤姆总是追赶杰瑞。或许他应该因为所有的压力起诉杰瑞。**
 
@@ -157,7 +158,7 @@ shell
 
 如此，即可成功实现绕过限制：
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715203413787-1563359231.png" alt="image-20240715203413459" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715203413787-1563359231.png" alt="image-20240715203413459" style="zoom:150%;" />
 
 但是这个shell有很多命令无法执行：su、sudo、git......，我们需要将命令添加至环境变量：
 
@@ -168,15 +169,15 @@ export PATH=$PATH:/usr/bin
 
 这样就可以su命令切换到jerry用户，密码还是试试wordpress的密码：
 
-![image-20240715211744867](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715211745112-1785991258.png)
+![image-20240715211744867](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715211745112-1785991258.png)
 
 成功切换到jerry用户，在用户的家目录发现了flag4：
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715212016428-519096248.png" alt="image-20240715212016425" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715212016428-519096248.png" alt="image-20240715212016425" style="zoom:150%;" />
 
 看看内容：
 
-![image-20240715203535494](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715203535625-705222679.png)
+![image-20240715203535494](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715203535625-705222679.png)
 
 品一下：**很高兴看到你走了这么远，但你还没到家。你还需要找到最后一个flag（真正重要的flag）。这里没有提示，你只能靠自己了。快走，（git）离开这里**
 
@@ -206,11 +207,11 @@ sudo git -p help
 
 即可获得权限为root的shell：
 
-<img src="https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715214857126-192753447.png" alt="image-20240715214857100" style="zoom:150%;" />
+<img src="https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715214857126-192753447.png" alt="image-20240715214857100" style="zoom:150%;" />
 
 看看/root目录：
 
-![image-20240715214956191](https://img2023.cnblogs.com/blog/3450279/202407/3450279-20240715214956362-1824325933.png)
+![image-20240715214956191](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20240715214956362-1824325933.png)
 
 成功找到了最后一个flag
 
@@ -223,4 +224,3 @@ sudo git -p help
 * 利用vim末行命令进行逃逸，突破rbash限制
 * 密码复用切换shell账户
 * 利用git帮助文档末行命令实现sodo提权
-

