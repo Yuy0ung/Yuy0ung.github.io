@@ -434,5 +434,4 @@ select source.getNode(), source, sink, "SQL injection"
 此时的ql就能查询出mybatis的注入场景了：
 ![image-20251204162338988](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251204162338988.png)
 
-不过这里的mybatis注入场景是将语句写在java文件的，后续还需要考虑xml形式的mybatis注入
-
+不过这里的mybatis注入场景是将语句写在java文件的，后续还需要考虑xml形式的mybatis注入场景
