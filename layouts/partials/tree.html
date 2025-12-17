@@ -11,7 +11,7 @@
 {{ end }}
 
 <ul class="tree-list">
-  {{ range where $page.Pages "IsSection" false }}
+  {{ range (where $page.Pages "IsSection" false).ByWeight }}
     <li>
       <div class="tree-item-wrapper">
         <span style="width: 15px; display: inline-block; flex-shrink: 0;"></span>
