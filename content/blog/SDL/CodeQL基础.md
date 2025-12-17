@@ -1,10 +1,10 @@
 ---
-title: "CodeQL使用"
+title: "CodeQL基础"
 date: 2025-12-11T00:00:00+08:00
 draft: false
 ---
 
-# CodeQL使用
+# CodeQL基础
 
 ## 配置
 
@@ -435,110 +435,3 @@ select source.getNode(), source, sink, "SQL injection"
 
 不过这里的mybatis注入场景是将语句写在java文件的，后续还需要考虑xml形式的mybatis注入
 
-## 扫描
-
-接下来学点不一样的，从安全建设角度出发，我们通常会根据现存的漏洞规则，针对代码进行扫描，我们选取官方的以下规则：
-
-~~~
-CWE-078   命令执行
-CWE-502   反序列化
-CWE-094   表达式 / 代码注入
-CWE-918   SSRF
-CWE-611   XXE
-CWE-089   SQL 注入
-CWE-079   XSS
-~~~
-
-接下来以https://github.com/whgojp/JavaSecLab/项目为例
-
-### SQL注入
-
-我们使用codeql官方的规则进行sql注入扫描（记得先构建数据库）：
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-089 \
-  --format=sarif-latest \
-  --output=sql.sarif
-~~~
-
-![image-20251216104533092](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216104533092.png)
-
-可以看到扫描完成后在文件夹新增了一个sarif文件，这个就是扫描结果文件，可以在vscode下载sarif viewer插件进行解析查看：
-![6f2bac46131bc294ac75406979531746](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/6f2bac46131bc294ac75406979531746.png)
-
-同理我们可以检测其他漏洞
-
-### XXE
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-611 \
-  --format=sarif-latest \
-  --output=xxe.sarif
-~~~
-
-![image-20251216110152690](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216110152690.png)
-
-### SSRF
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-918 \
-  --format=sarif-latest \
-  --output=ssrf.sarif
-~~~
-
-![image-20251216110412396](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216110412396.png)
-
-### RCE
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-078 \
-  --format=sarif-latest \
-  --output=rce-command.sarif
-~~~
-
-![image-20251216111645006](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216111645006.png)
-
-### 不安全的反序列化
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-502 \
-  --format=sarif-latest \
-  --output=deserialize.sarif
-~~~
-
-![image-20251216112903627](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216112903627.png)
-
-这个规则挺牛逼，各种反序列化都照顾到了
-
-### 表达式注入
-
-针对SPEL这类
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-094 \
-  --format=sarif-latest \
-  --output=spel.sarif
-~~~
-
-![image-20251216114342745](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216114342745.png)
-
-### XSS
-
-~~~sh
-codeql database analyze ~/tools/CodeQL/db/javasecpro \
-  codeql/java-queries:Security/CWE/CWE-079 \
-  --format=sarif-latest \
-  --output=xss.sarif
-~~~
-
-![image-20251216114626355](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216114626355.png)
-
-### 总结
-
-针对上面的扫描结果，分析了靶场源码，也在代码搭建的平台上进行了验证，发现有一定的误报，不过没什么漏报，甚至能够扫描出来靶场没有考虑到的一些地方的漏洞
