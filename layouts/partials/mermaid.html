@@ -3,40 +3,12 @@
 
   mermaid.initialize({ 
     startOnLoad: false,
-    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default',
+    securityLevel: 'loose'
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // 查找所有 language-mermaid 的代码块
-    // Hugo Chroma 高亮可能会生成 code.language-mermaid
-    const mermaidBlocks = document.querySelectorAll('code.language-mermaid');
-    
-    if (mermaidBlocks.length === 0) return;
-
-    mermaidBlocks.forEach((block) => {
-      // 获取源码，使用 textContent 可以自动处理 HTML 实体和移除高亮标签
-      const content = block.textContent;
-      
-      const div = document.createElement('div');
-      div.className = 'mermaid';
-      div.textContent = content;
-      
-      // 向上查找最外层的容器进行替换
-      // 通常结构是 div.highlight > pre > code.language-mermaid
-      // 或者 pre > code.language-mermaid
-      let target = block.parentElement; // pre
-      if (target && target.parentElement && target.parentElement.classList.contains('highlight')) {
-        target = target.parentElement; // div.highlight
-      } else if (target && target.tagName !== 'PRE') {
-          // 如果不是 pre，可能是直接 code（不太常见，但防万一）
-          target = block;
-      }
-      
-      if (target && target.parentNode) {
-          target.parentNode.replaceChild(div, target);
-      }
-    });
-
+    // 自动运行 mermaid 解析，查找 .mermaid 类
     await mermaid.run({
       querySelector: '.mermaid'
     });
