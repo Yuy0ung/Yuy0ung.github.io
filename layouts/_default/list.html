@@ -8,7 +8,7 @@
       
       <!-- List sub-pages if it's a section -->
       <ul>
-      {{ range .Pages.ByWeight }}
+      {{ range .Pages }}
         <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
       {{ end }}
       </ul>
