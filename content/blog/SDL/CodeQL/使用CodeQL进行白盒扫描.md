@@ -7,8 +7,6 @@ weight: 10
 
 # 使用CodeQL进行白盒扫描
 
-## 扫描
-
 接下来学点不一样的，从企业安全建设角度出发，我们通常会根据codeQL提供的的CWE漏洞规则，针对代码进行扫描，我们选取以下CWE规则：
 
 ~~~
@@ -36,7 +34,7 @@ weight: 10
 
 接下来以https://github.com/whgojp/JavaSecLab/项目为例
 
-### SQL注入
+## SQL注入
 
 我们使用codeql官方的规则进行sql注入扫描（记得先构建数据库）：
 
@@ -54,7 +52,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 同理我们可以检测其他漏洞
 
-### XXE
+## XXE
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -65,7 +63,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216110152690](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216110152690.png)
 
-### SSRF
+## SSRF
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -76,7 +74,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216110412396](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216110412396.png)
 
-### RCE
+## RCE
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -87,7 +85,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216111645006](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216111645006.png)
 
-### 不安全的反序列化
+## 不安全的反序列化
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -100,7 +98,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 这个规则挺牛逼，各种反序列化都照顾到了
 
-### 表达式注入
+## 表达式注入
 
 针对SPEL这类
 
@@ -113,7 +111,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216114342745](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216114342745.png)
 
-### XSS
+## XSS
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -124,7 +122,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216114626355](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216114626355.png)
 
-### 硬编码
+## 硬编码
 
 ~~~sql
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -135,7 +133,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216182123703](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216182123703.png)
 
-### 目录穿越/任意文件
+## 目录穿越/任意文件
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -146,7 +144,7 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
 
 ![image-20251216182419768](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216182419768.png)
 
-### 认证/授权绕过
+## 认证/授权绕过
 
 ~~~sh
 codeql database analyze ~/tools/CodeQL/db/javasecpro \
@@ -156,17 +154,13 @@ codeql database analyze ~/tools/CodeQL/db/javasecpro \
   --output=auth-and-authorization-bypass.sarif
 ~~~
 
-
-
-
-
-### 漏报处理
+## 漏报处理
 
 针对上面的扫描结果，分析了靶场源码，也在代码搭建的平台上进行了验证，发现有一定的误报，不过宁可错杀不可放过，这些甚至能够扫描出来靶场没有考虑到的一些地方的漏洞
 
 接下来处理漏报的情况
 
-#### 反射调用触发的 RCE
+### 反射调用触发的 RCE
 
 RCE的情况出现了漏报，因为这里是反射调用的：
 ![QQ_1765874156453](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/QQ_1765874156453.png)
@@ -198,7 +192,7 @@ select
 
 ![image-20251216174608245](https://yuy0ung.oss-cn-chengdu.aliyuncs.com/image-20251216174608245.png)
 
-#### jdbc反序列化
+### jdbc反序列化
 
 反序列化的扫描结果并没有jdbc，补充一下：
 
@@ -283,7 +277,7 @@ select sink.getNode(), source, sink, "Unsafe deserialization detected (Official 
 
 这样就可以在原有基础上扫描出来jdbc反序列化了
 
-#### JPA、hibernate、MyBatis的SQL注入
+### JPA、hibernate、MyBatis的SQL注入
 
 漏掉了这仨，CodeQL 的 Java 分析非常依赖编译环境（autobuild）。如果你的项目缺少 jar 包（比如没有 hibernate-core.jar ），CodeQL 就无法解析`org.hibernate.Session`这个类型，而如果代码里面写 `sink.getType().hasQualifiedName("org.hibernate.Session")`，CodeQL 会因为类型解析失败而返回 false，导致漏报
 

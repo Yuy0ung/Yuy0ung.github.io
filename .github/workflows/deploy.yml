@@ -81,3 +81,40 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Deploy to domestic server (VPS)
+  deploy-to-vps:
+    runs-on: ubuntu-latest
+    needs: build
+    # Only run if the secret is set to avoid failure on forks or incomplete setup
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: ./public-tar
+
+      - name: Extract artifact
+        run: |
+          mkdir -p public
+          tar -xf public-tar/artifact.tar -C public
+
+      # Option 1: Using a dedicated action (easier)
+      # You need to configure these secrets in GitHub Repo Settings -> Secrets and variables -> Actions
+      # SERVER_SSH_KEY: Your private SSH key
+      # SERVER_HOST: Server IP
+      # SERVER_USER: Username (e.g., root)
+      # SERVER_TARGET_PATH: Path on server (e.g., /www/wwwroot/myblog)
+      - name: Deploy to Server
+        if: ${{ env.SERVER_HOST != '' }} # Check if secrets are likely set
+        uses: easingthemes/ssh-deploy@v5.0.0
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          TARGET: ${{ secrets.SERVER_TARGET_PATH }}
+          SOURCE: "public/"
+          ARGS: "-rltgoDzvO --delete"
+          exclude: ".git/ .github/"
+
