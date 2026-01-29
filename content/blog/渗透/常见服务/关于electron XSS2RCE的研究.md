@@ -1,6 +1,6 @@
 ---
 title: "关于electron XSS2RCE的研究"
-date: 2026-1-26T00:00:00+08:00
+date: 2026-01-26T00:00:00+08:00
 draft: false
 ---
 
