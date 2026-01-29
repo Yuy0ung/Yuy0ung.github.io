@@ -120,4 +120,8 @@ Electron采用多进程架构，有两种进程：
 
 * 关闭enableRemoteModule选项
 
+* IPC 通信安全设计
+
+* 使用CSP策略
+
   
