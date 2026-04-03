@@ -1,3 +1,10 @@
+---
+title: "Agent Harness学习-规划"
+date: 2026-04-03T00:00:00+08:00
+draft: false
+weight: 4
+---
+
 # Agent Harness学习-规划
 
 在前面的agent开发中，不难发现，我们的loop已经具有了简单的ReAct能力，能思考，调用tools，根据tools调用的结果来“隐式”推理，再思考下一步...

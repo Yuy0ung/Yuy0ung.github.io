@@ -1,3 +1,10 @@
+---
+title: "Agent Harness学习-Loop"
+date: 2026-04-03T00:00:00+08:00
+draft: false
+weight: 2
+---
+
 # Agent Harness学习-Loop
 
 接下来实践前面提到的loop

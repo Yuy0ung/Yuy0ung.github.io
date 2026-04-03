@@ -1,3 +1,10 @@
+---
+title: "Agent Harness学习-基础"
+date: 2026-04-03T00:00:00+08:00
+draft: false
+weight: 1
+---
+
 # Agent Harness学习-基础
 
 此笔记诞生的原因是：兴趣使然，我也想写一个渗透Agent，感觉CC的架构是一个很值得参考的东西，于是促使我开始参考 [learn-claude-code](https://github.com/shareAI-lab/learn-claude-code/blob/main/README-zh.md) 学习Agent Harness相关的知识，遂有此篇

@@ -1,3 +1,10 @@
+---
+title: "Agent Harness学习-工具分发"
+date: 2026-04-03T00:00:00+08:00
+draft: false
+weight: 3
+---
+
 # Agent Harness学习-工具分发
 
 在上一篇笔记中，我们只是简单提供了调用bash的函数，虽然仅bash就可以完成大量任务，但只有 `bash` 时, 所有操作都走 shell，`cat` 截断不可预测, `sed` 遇到特殊字符就崩, 每次 bash 调用都是不受约束的安全面
